@@ -38,6 +38,18 @@ type DecorativeShard = {
   drift: number;
 };
 
+type EnvelopeRuntime = {
+  group: THREE.Group;
+  body: THREE.Mesh;
+  photo: THREE.Mesh;
+  flap: THREE.Mesh;
+  outline: THREE.LineSegments;
+  crease: THREE.LineSegments;
+  photoUrl: string;
+  index: number;
+  baseAngle: number;
+};
+
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) {
@@ -47,7 +59,7 @@ if (!app) {
 app.innerHTML = `
   <main class="page-shell">
     <div class="grain"></div>
-    <div class="hero-copy">
+    <div class="hero-copy" id="heroCopy">
       <p class="eyebrow">Origami Space · 3D Interactive Portrait</p>
       <h1>Selena Yuan</h1>
       <div class="hint-row">
@@ -62,11 +74,30 @@ app.innerHTML = `
         <div class="card-layer"></div>
       </div>
     </section>
-    <aside class="ambient-note">
+    <aside class="ambient-note" id="ambientNote">
       <p>Warm paper, soft shadows, and a life still unfolding.</p>
     </aside>
+    <div class="gallery-view" id="galleryView">
+      <button class="gallery-back" id="galleryBack" aria-label="返回主界面">
+        <span>←</span>
+        <span>返回</span>
+      </button>
+      <div class="gallery-title">你想看看我吗！</div>
+      <div class="gallery-hint">左右拖拽旋转 · 点击信封打开照片</div>
+    </div>
+    <div class="lightbox" id="lightbox">
+      <button class="lightbox-close" id="lightboxClose" aria-label="关闭">×</button>
+      <img src="" alt="" id="lightboxImg">
+    </div>
   </main>
 `;
+
+const PHOTO_URLS = [
+  "/photos/photo1.jpg",
+  "/photos/photo2.jpg",
+  "/photos/photo3.jpg",
+  "/photos/photo4.jpg"
+];
 
 const faces: FaceData[] = [
   {
@@ -202,12 +233,32 @@ const faces: FaceData[] = [
     `
   },
   {
-    id: "contact",
+    id: "gallery",
     eyebrow: "Face 05",
+    title: "你想看看我吗！",
+    shortLabel: "看看我",
+    subtitle: "四封信，四张瞬间，等你来拆开",
+    angle: 4.7,
+    accent: "#D4A574",
+    html: `
+      <section class="panel-block">
+        <p class="panel-kicker">Photo Gallery</p>
+        <h2>你想看看我吗！</h2>
+        <p class="panel-quote">四封信，四张瞬间，等你来拆开。</p>
+      </section>
+      <section class="panel-block">
+        <p class="panel-mini-title">玩法</p>
+        <p class="panel-text">点击这个折纸面进入照片信封空间，左右拖拽旋转，把任一信封移到最前，点击即可打开照片。</p>
+      </section>
+    `
+  },
+  {
+    id: "contact",
+    eyebrow: "Face 06",
     title: "联系我",
     shortLabel: "联系",
     subtitle: "期待一起做出有温度的好产品",
-    angle: 4.7,
+    angle: 0.8,
     accent: "#C9A88C",
     html: `
       <section class="panel-block">
@@ -230,8 +281,15 @@ const faces: FaceData[] = [
 
 const canvas = document.querySelector<HTMLCanvasElement>(".webgl");
 const cardLayer = document.querySelector<HTMLDivElement>(".card-layer");
+const heroCopy = document.querySelector<HTMLElement>("#heroCopy");
+const ambientNote = document.querySelector<HTMLElement>("#ambientNote");
+const galleryView = document.querySelector<HTMLElement>("#galleryView");
+const galleryBack = document.querySelector<HTMLElement>("#galleryBack");
+const lightbox = document.querySelector<HTMLElement>("#lightbox");
+const lightboxImg = document.querySelector<HTMLImageElement>("#lightboxImg");
+const lightboxClose = document.querySelector<HTMLElement>("#lightboxClose");
 
-if (!canvas || !cardLayer) {
+if (!canvas || !cardLayer || !heroCopy || !ambientNote || !galleryView || !galleryBack || !lightbox || !lightboxImg || !lightboxClose) {
   throw new Error("Scene mount points not found");
 }
 
@@ -290,6 +348,21 @@ scene.add(origamiGroup);
 
 const floatGroup = new THREE.Group();
 origamiGroup.add(floatGroup);
+
+const galleryGroup = new THREE.Group();
+galleryGroup.visible = false;
+scene.add(galleryGroup);
+
+const galleryLight = new THREE.HemisphereLight("#fff7ef", "#d9b89c", 1.5);
+galleryGroup.add(galleryLight);
+
+const galleryKeyLight = new THREE.DirectionalLight("#fff1dd", 1.6);
+galleryKeyLight.position.set(3, 5, 6);
+galleryGroup.add(galleryKeyLight);
+
+const galleryRimLight = new THREE.DirectionalLight("#f7d7bd", 1.8);
+galleryRimLight.position.set(-4, 2, -4);
+galleryGroup.add(galleryRimLight);
 
 const kraftPaperTexture = new THREE.CanvasTexture(createKraftPaperCanvas());
 kraftPaperTexture.wrapS = THREE.RepeatWrapping;
@@ -368,13 +441,16 @@ const faceGeometry = createOrigamiCrystalGeometry(0.62, 0.95);
 const faceFrames: FaceRuntime[] = [];
 const clickableMeshes: THREE.Object3D[] = [];
 const decorativeShards: DecorativeShard[] = [];
+const envelopes: EnvelopeRuntime[] = [];
+const envelopeClickables: THREE.Object3D[] = [];
 
 const normals = [
   new THREE.Vector3(0.65, 0.5, 0.58),
   new THREE.Vector3(-0.72, 0.42, 0.55),
   new THREE.Vector3(0.18, -0.82, 0.54),
   new THREE.Vector3(0.78, -0.18, 0.6),
-  new THREE.Vector3(-0.15, 0.75, 0.62)
+  new THREE.Vector3(-0.15, 0.75, 0.62),
+  new THREE.Vector3(0.22, 0.82, 0.52)
 ].map((vector) => vector.normalize());
 
 const shardNormals = generateEvenSphereNormals(8, 1.3);
@@ -394,40 +470,217 @@ shardNormals.forEach((normal, index) => {
   floatGroup.add(shard.crease);
 });
 
+PHOTO_URLS.forEach((url, index) => {
+  const envelope = createEnvelope(url, index);
+  envelopes.push(envelope);
+  envelopeClickables.push(envelope.body, envelope.photo, envelope.flap);
+  galleryGroup.add(envelope.group);
+});
+
 let hoveredId: string | null = null;
 let activeId: string | null = null;
 let isDragging = false;
+let galleryMode = false;
+let galleryRotation = 0;
+let galleryVelocity = 0;
+let isGalleryDragging = false;
+let lastGalleryPointerX = 0;
+let galleryDragDistance = 0;
+let hoveredEnvelopeIndex: number | null = null;
+let openedEnvelopeIndex: number | null = null;
+
+const textureLoader = new THREE.TextureLoader();
+
+function enterGallery(): void {
+  galleryMode = true;
+  galleryRotation = 0;
+  galleryVelocity = 0;
+  controls.enabled = false;
+
+  gsap.to(camera.position, {
+    x: 0,
+    y: 0.6,
+    z: 7.2,
+    duration: 1,
+    ease: "power2.inOut"
+  });
+  gsap.to(controls.target, {
+    x: 0,
+    y: 0,
+    z: 0,
+    duration: 1,
+    ease: "power2.inOut"
+  });
+
+  gsap.to(origamiGroup.scale, {
+    x: 0.001,
+    y: 0.001,
+    z: 0.001,
+    duration: 0.7,
+    ease: "power2.in"
+  });
+
+  setTimeout(() => {
+    origamiGroup.visible = false;
+    galleryGroup.visible = true;
+    galleryGroup.scale.setScalar(0.001);
+    gsap.to(galleryGroup.scale, {
+      x: 1,
+      y: 1,
+      z: 1,
+      duration: 0.8,
+      ease: "back.out(1.4)"
+    });
+  }, 500);
+
+  heroCopy!.classList.add("hidden");
+  ambientNote!.classList.add("hidden");
+  activeCard.classList.remove("visible");
+  galleryView!.classList.add("visible");
+}
+
+function exitGallery(): void {
+  galleryMode = false;
+  controls.enabled = true;
+  lightbox!.classList.remove("visible");
+
+  gsap.to(galleryGroup.scale, {
+    x: 0.001,
+    y: 0.001,
+    z: 0.001,
+    duration: 0.6,
+    ease: "power2.in"
+  });
+
+  setTimeout(() => {
+    galleryGroup.visible = false;
+    origamiGroup.visible = true;
+    gsap.to(origamiGroup.scale, {
+      x: 1,
+      y: 1,
+      z: 1,
+      duration: 0.8,
+      ease: "back.out(1.2)"
+    });
+  }, 450);
+
+  gsap.to(camera.position, {
+    x: 0,
+    y: 0.8,
+    z: 8.8,
+    duration: 1,
+    ease: "power2.inOut"
+  });
+  gsap.to(controls.target, {
+    x: 0,
+    y: 0.2,
+    z: 0,
+    duration: 1,
+    ease: "power2.inOut"
+  });
+
+  heroCopy!.classList.remove("hidden");
+  ambientNote!.classList.remove("hidden");
+  galleryView!.classList.remove("visible");
+
+  setActiveFace(null);
+}
+
+function openLightbox(index: number): void {
+  openedEnvelopeIndex = index;
+  lightboxImg!.src = PHOTO_URLS[index];
+  lightbox!.classList.add("visible");
+}
+
+function closeLightbox(): void {
+  lightbox!.classList.remove("visible");
+  openedEnvelopeIndex = null;
+}
 
 canvas.addEventListener("pointermove", (event) => {
   updatePointer(event.clientX, event.clientY);
+
+  if (galleryMode && isGalleryDragging) {
+    const deltaX = event.clientX - lastGalleryPointerX;
+    galleryRotation -= deltaX * 0.005;
+    galleryVelocity = -deltaX * 0.005;
+    lastGalleryPointerX = event.clientX;
+    galleryDragDistance += Math.abs(deltaX);
+    return;
+  }
+
+  if (galleryMode) {
+    const hit = pickEnvelope();
+    canvas.style.cursor = hit ? "pointer" : "grab";
+    return;
+  }
+
   const hit = pickFace();
   hoveredId = hit?.userData.faceId ?? null;
   canvas.style.cursor = hoveredId ? "pointer" : "grab";
 });
 
-canvas.addEventListener("pointerdown", () => {
+canvas.addEventListener("pointerdown", (event) => {
+  if (galleryMode) {
+    isGalleryDragging = true;
+    lastGalleryPointerX = event.clientX;
+    galleryDragDistance = 0;
+    galleryVelocity = 0;
+    canvas.style.cursor = "grabbing";
+    return;
+  }
+
   isDragging = false;
   canvas.style.cursor = "grabbing";
 });
 
 canvas.addEventListener("pointerup", (event) => {
   updatePointer(event.clientX, event.clientY);
+
+  if (galleryMode) {
+    isGalleryDragging = false;
+    canvas.style.cursor = "grab";
+
+    if (galleryDragDistance < 8) {
+      const hit = pickEnvelope();
+      if (hit) {
+        const index = hit.userData.envelopeIndex as number;
+        openLightbox(index);
+      }
+    }
+    return;
+  }
+
   const hit = pickFace();
 
   if (!isDragging && hit) {
     const nextId = hit.userData.faceId as string;
-    setActiveFace(activeId === nextId ? null : nextId);
+    if (nextId === "gallery") {
+      enterGallery();
+    } else {
+      setActiveFace(activeId === nextId ? null : nextId);
+    }
   }
 
   canvas.style.cursor = hoveredId ? "pointer" : "grab";
 });
 
 controls.addEventListener("start", () => {
-  isDragging = true;
+  if (!galleryMode) {
+    isDragging = true;
+  }
 });
 
 controls.addEventListener("end", () => {
   isDragging = false;
+});
+
+galleryBack.addEventListener("click", exitGallery);
+lightboxClose.addEventListener("click", closeLightbox);
+lightbox.addEventListener("click", (event) => {
+  if (event.target === lightbox) {
+    closeLightbox();
+  }
 });
 
 window.addEventListener("resize", () => {
@@ -447,40 +700,82 @@ function tick(): void {
   const elapsed = clock.getElapsedTime();
   const pulse = (Math.sin(elapsed * 1.6) + 1) * 0.5;
 
-  floatGroup.position.y = Math.sin(elapsed * 2.1) * 0.06;
-  coreMaterial.emissiveIntensity = 0.004 + pulse * 0.006;
-  coreMesh.rotation.y = elapsed * 0.1;
-  coreMesh.rotation.x = Math.sin(elapsed * 0.35) * 0.08;
+  if (!galleryMode || origamiGroup.visible) {
+    floatGroup.position.y = Math.sin(elapsed * 2.1) * 0.06;
+    coreMaterial.emissiveIntensity = 0.004 + pulse * 0.006;
+    coreMesh.rotation.y = elapsed * 0.1;
+    coreMesh.rotation.x = Math.sin(elapsed * 0.35) * 0.08;
 
-  decorativeShards.forEach((shard) => {
-    const outlineMaterial = shard.outline.material as THREE.LineBasicMaterial;
-    shard.mesh.position.copy(shard.basePosition);
-    shard.outline.position.copy(shard.basePosition);
-    shard.crease.position.copy(shard.basePosition);
-    const drift = Math.sin(elapsed * 1.2 + shard.phase) * shard.drift;
-    shard.mesh.position.addScaledVector(shard.basePosition.clone().normalize(), drift);
-    shard.outline.position.copy(shard.mesh.position);
-    shard.crease.position.copy(shard.mesh.position);
-    shard.mesh.rotation.z += 0.0015;
-    shard.mesh.rotation.x = Math.sin(elapsed * 0.8 + shard.phase) * 0.18;
-    shard.outline.quaternion.copy(shard.mesh.quaternion);
-    shard.crease.quaternion.copy(shard.mesh.quaternion);
-    outlineMaterial.opacity = 0.24 + (Math.sin(elapsed * 1.4 + shard.phase) + 1) * 0.16;
-  });
+    decorativeShards.forEach((shard) => {
+      const outlineMaterial = shard.outline.material as THREE.LineBasicMaterial;
+      shard.mesh.position.copy(shard.basePosition);
+      shard.outline.position.copy(shard.basePosition);
+      shard.crease.position.copy(shard.basePosition);
+      const drift = Math.sin(elapsed * 1.2 + shard.phase) * shard.drift;
+      shard.mesh.position.addScaledVector(shard.basePosition.clone().normalize(), drift);
+      shard.outline.position.copy(shard.mesh.position);
+      shard.crease.position.copy(shard.mesh.position);
+      shard.mesh.rotation.z += 0.0015;
+      shard.mesh.rotation.x = Math.sin(elapsed * 0.8 + shard.phase) * 0.18;
+      shard.outline.quaternion.copy(shard.mesh.quaternion);
+      shard.crease.quaternion.copy(shard.mesh.quaternion);
+      outlineMaterial.opacity = 0.24 + (Math.sin(elapsed * 1.4 + shard.phase) + 1) * 0.16;
+    });
 
-  faceFrames.forEach((runtime) => {
-    const isHovered = runtime.data.id === hoveredId;
-    const isActive = runtime.data.id === activeId;
-    const glowStrength = isActive ? 1 : isHovered ? 0.74 : 0.36;
-    const targetZ = isActive ? 0.28 : isHovered ? 0.12 : 0;
-    const faceOutlineMaterial = runtime.faceOutline.material as THREE.LineBasicMaterial;
-    const panelOutlineMaterial = runtime.panelOutline.material as THREE.LineBasicMaterial;
-    runtime.faceMesh.position.z += (targetZ - runtime.faceMesh.position.z) * 0.12;
-    faceOutlineMaterial.opacity = 0.4 + glowStrength * 0.55;
-    panelOutlineMaterial.opacity = 0.22 + glowStrength * 0.35;
-    runtime.faceMesh.rotation.z = Math.sin(elapsed * 1.1 + runtime.pulseOffset) * 0.015;
-    runtime.faceMesh.scale.setScalar(1 + (isHovered ? 0.03 : 0));
-  });
+    faceFrames.forEach((runtime) => {
+      const isHovered = runtime.data.id === hoveredId;
+      const isActive = runtime.data.id === activeId;
+      const glowStrength = isActive ? 1 : isHovered ? 0.74 : 0.36;
+      const targetZ = isActive ? 0.28 : isHovered ? 0.12 : 0;
+      const faceOutlineMaterial = runtime.faceOutline.material as THREE.LineBasicMaterial;
+      const panelOutlineMaterial = runtime.panelOutline.material as THREE.LineBasicMaterial;
+      runtime.faceMesh.position.z += (targetZ - runtime.faceMesh.position.z) * 0.12;
+      faceOutlineMaterial.opacity = 0.4 + glowStrength * 0.55;
+      panelOutlineMaterial.opacity = 0.22 + glowStrength * 0.35;
+      runtime.faceMesh.rotation.z = Math.sin(elapsed * 1.1 + runtime.pulseOffset) * 0.015;
+      runtime.faceMesh.scale.setScalar(1 + (isHovered ? 0.03 : 0));
+    });
+  }
+
+  if (galleryMode || galleryGroup.visible) {
+    galleryRotation += galleryVelocity;
+    galleryVelocity *= 0.94;
+
+    const snapSpeed = 0.04;
+    const segment = (Math.PI * 2) / envelopes.length;
+    const nearest = Math.round(galleryRotation / segment) * segment;
+    if (Math.abs(galleryVelocity) < 0.002) {
+      galleryRotation += (nearest - galleryRotation) * snapSpeed;
+    }
+
+    galleryGroup.position.y = Math.sin(elapsed * 1.2) * 0.08;
+
+    envelopes.forEach((envelope, index) => {
+      const angle = envelope.baseAngle + galleryRotation;
+      const radius = 3.1;
+      envelope.group.position.x = Math.sin(angle) * radius;
+      envelope.group.position.z = Math.cos(angle) * radius;
+      envelope.group.rotation.y = -angle;
+
+      const normalizedAngle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      const frontDelta = normalizedAngle > Math.PI
+        ? Math.PI * 2 - normalizedAngle
+        : normalizedAngle;
+      const frontFactor = 1 - Math.min(frontDelta / 1.2, 1);
+      const targetScale = 1 + frontFactor * 0.18;
+      envelope.group.scale.setScalar(
+        envelope.group.scale.x + (targetScale - envelope.group.scale.x) * 0.08
+      );
+
+      const isHovered = hoveredEnvelopeIndex === index;
+      const isOpened = openedEnvelopeIndex === index;
+      const targetFlapRot = isHovered || isOpened ? -Math.PI * 0.75 : 0;
+      envelope.flap.rotation.x += (targetFlapRot - envelope.flap.rotation.x) * 0.1;
+
+      const photoMaterial = envelope.photo.material as THREE.MeshBasicMaterial;
+      photoMaterial.opacity = 0.85 + frontFactor * 0.15;
+    });
+  }
 
   positionCard();
   controls.update();
@@ -637,6 +932,91 @@ function createDecorativeShard(normal: THREE.Vector3, index: number): Decorative
     basePosition,
     phase: index * 0.78,
     drift: 0.04 + (index % 3) * 0.01
+  };
+}
+
+function createEnvelope(photoUrl: string, index: number): EnvelopeRuntime {
+  const group = new THREE.Group();
+  const baseAngle = index * (Math.PI / 2);
+
+  const width = 1.5;
+  const height = 1.0;
+  const depth = 0.12;
+
+  const bodyGeometry = new THREE.BoxGeometry(width, height, depth);
+  const body = new THREE.Mesh(bodyGeometry, paperMaterial.clone());
+  body.userData.envelopeIndex = index;
+  group.add(body);
+
+  const photoTexture = textureLoader.load(photoUrl);
+  photoTexture.colorSpace = THREE.SRGBColorSpace;
+  photoTexture.minFilter = THREE.LinearFilter;
+  photoTexture.magFilter = THREE.LinearFilter;
+
+  const photoGeometry = new THREE.PlaneGeometry(width * 0.82, height * 0.64);
+  const photoMaterial = new THREE.MeshBasicMaterial({
+    map: photoTexture,
+    transparent: true,
+    opacity: 0.9,
+    side: THREE.DoubleSide
+  });
+  const photo = new THREE.Mesh(photoGeometry, photoMaterial);
+  photo.position.set(0, -0.04, depth / 2 + 0.01);
+  photo.userData.envelopeIndex = index;
+  group.add(photo);
+
+  const flapShape = new THREE.Shape();
+  flapShape.moveTo(-width / 2, 0);
+  flapShape.lineTo(width / 2, 0);
+  flapShape.lineTo(0, height * 0.55);
+  flapShape.lineTo(-width / 2, 0);
+  const flapGeometry = new THREE.ShapeGeometry(flapShape);
+  const flap = new THREE.Mesh(flapGeometry, paperMaterial.clone());
+  flap.position.set(0, height / 2, depth / 2 + 0.015);
+  flap.userData.envelopeIndex = index;
+  group.add(flap);
+
+  const outline = new THREE.LineSegments(
+    new THREE.EdgesGeometry(bodyGeometry),
+    new THREE.LineBasicMaterial({
+      color: "#b88a64",
+      transparent: true,
+      opacity: 0.7
+    })
+  );
+  group.add(outline);
+
+  const crease = new THREE.LineSegments(
+    new THREE.WireframeGeometry(bodyGeometry),
+    new THREE.LineBasicMaterial({
+      color: "#a67c52",
+      transparent: true,
+      opacity: 0.28
+    })
+  );
+  crease.scale.setScalar(0.99);
+  group.add(crease);
+
+  const flapOutline = new THREE.LineSegments(
+    new THREE.EdgesGeometry(flapGeometry),
+    new THREE.LineBasicMaterial({
+      color: "#b88a64",
+      transparent: true,
+      opacity: 0.7
+    })
+  );
+  flap.add(flapOutline);
+
+  return {
+    group,
+    body,
+    photo,
+    flap,
+    outline,
+    crease,
+    photoUrl,
+    index,
+    baseAngle
   };
 }
 
@@ -930,6 +1310,20 @@ function pickFace(): THREE.Object3D | null {
   raycaster.setFromCamera(pointer, camera);
   const intersections = raycaster.intersectObjects(clickableMeshes, false);
   return intersections[0]?.object ?? null;
+}
+
+function pickEnvelope(): THREE.Object3D | null {
+  raycaster.setFromCamera(pointer, camera);
+  const intersections = raycaster.intersectObjects(envelopeClickables, false);
+  const hit = intersections[0]?.object ?? null;
+
+  if (hit) {
+    hoveredEnvelopeIndex = hit.userData.envelopeIndex as number;
+  } else {
+    hoveredEnvelopeIndex = null;
+  }
+
+  return hit;
 }
 
 function setActiveFace(id: string | null): void {

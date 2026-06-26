@@ -148,13 +148,14 @@ a {
 .detail-card {
   --card-scale: 1;
   position: absolute;
-  left: 50%;
+  right: clamp(20px, 4vw, 48px);
+  left: auto;
   top: 50%;
-  width: min(620px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
+  width: min(520px, 42vw);
+  max-height: calc(100vh - 48px);
   opacity: 0;
-  transform: translate(-50%, -50%) scale(var(--card-scale));
-  transform-origin: center center;
+  transform: translate(0, -50%) scale(var(--card-scale));
+  transform-origin: right center;
   transition:
     opacity 0.4s ease,
     transform 0.45s ease;
@@ -170,7 +171,7 @@ a {
   position: relative;
   border: 1px solid rgba(201, 168, 140, 0.48);
   border-radius: 28px;
-  max-height: min(80vh, 760px);
+  max-height: min(86vh, 800px);
   background:
     linear-gradient(180deg, rgba(255, 250, 245, 0.92), rgba(245, 236, 227, 0.92)),
     var(--panel);
@@ -430,7 +431,11 @@ a {
   }
 
   .detail-card {
+    right: auto;
+    left: 50%;
     width: min(92vw, 520px);
+    transform: translate(-50%, -50%) scale(var(--card-scale));
+    transform-origin: center center;
   }
 
   .card-shell {

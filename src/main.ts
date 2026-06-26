@@ -19,7 +19,7 @@ type FaceRuntime = {
   data: FaceData;
   pivot: THREE.Group;
   faceMesh: THREE.Mesh;
-  faceOutline: THREE.LineLoop;
+  faceOutline: THREE.LineSegments;
   panelHinge: THREE.Group;
   panelMesh: THREE.Mesh;
   panelOutline: THREE.LineLoop;
@@ -31,7 +31,8 @@ type FaceRuntime = {
 
 type DecorativeShard = {
   mesh: THREE.Mesh;
-  outline: THREE.LineLoop;
+  outline: THREE.LineSegments;
+  crease: THREE.LineSegments;
   basePosition: THREE.Vector3;
   phase: number;
   drift: number;
@@ -48,7 +49,7 @@ app.innerHTML = `
     <div class="grain"></div>
     <div class="hero-copy">
       <p class="eyebrow">Origami Space · 3D Interactive Portrait</p>
-      <h1>Selena Yuan <span>折叠人生</span></h1>
+      <h1>Selena Yuan</h1>
       <div class="hint-row">
         <span>拖拽旋转</span>
         <span>悬停高亮</span>
@@ -199,6 +200,31 @@ const faces: FaceData[] = [
         </p>
       </section>
     `
+  },
+  {
+    id: "contact",
+    eyebrow: "Face 05",
+    title: "联系我",
+    shortLabel: "联系",
+    subtitle: "期待一起做出有温度的好产品",
+    angle: 4.7,
+    accent: "#C9A88C",
+    html: `
+      <section class="panel-block">
+        <p class="panel-kicker">Contact</p>
+        <h2>保持联系</h2>
+        <p class="panel-quote">期待一起做出有温度的好产品。</p>
+      </section>
+      <section class="panel-grid">
+        <div><span>手机</span><strong>16620063787</strong></div>
+        <div><span>邮箱</span><strong>2114214896@qq.com</strong></div>
+      </section>
+      <section class="panel-block">
+        <p class="panel-mini-title">社交平台</p>
+        <p class="panel-link"><a href="https://github.com/uan-iel" target="_blank" rel="noreferrer">GitHub: uan-iel</a></p>
+        <p class="panel-link"><a href="https://www.xiaohongshu.com/user/profile/1022725683" target="_blank" rel="noreferrer">小红书: 1022725683</a></p>
+      </section>
+    `
   }
 ];
 
@@ -221,8 +247,8 @@ const sizes = {
   height: window.innerHeight
 };
 
-const camera = new THREE.PerspectiveCamera(34, sizes.width / sizes.height, 0.1, 100);
-camera.position.set(0, 0.8, 7.8);
+const camera = new THREE.PerspectiveCamera(36, sizes.width / sizes.height, 0.1, 100);
+camera.position.set(0, 0.8, 8.8);
 scene.add(camera);
 
 const renderer = new THREE.WebGLRenderer({
@@ -252,11 +278,11 @@ keyLight.position.set(4, 6, 5);
 scene.add(keyLight);
 
 const rimLight = new THREE.DirectionalLight("#f7d7bd", 2.1);
-rimLight.position.set(-5, 1.5, -4);
+rimLight.position.set(-6, 2, -5);
 scene.add(rimLight);
 
-const fillLight = new THREE.PointLight("#ead5c5", 1.2, 14);
-fillLight.position.set(0, -2, 5);
+const fillLight = new THREE.PointLight("#ead5c5", 1.3, 18);
+fillLight.position.set(0, -3, 6);
 scene.add(fillLight);
 
 const origamiGroup = new THREE.Group();
@@ -298,13 +324,14 @@ const panelMaterial = new THREE.MeshStandardMaterial({
   bumpScale: 0.13
 });
 
-const coreGeometry = new THREE.IcosahedronGeometry(1.02, 0);
+const coreGeometry = new THREE.OctahedronGeometry(0.72, 0);
 const coreMaterial = new THREE.MeshStandardMaterial({
   color: "#d8b896",
   roughness: 1,
   metalness: 0,
   emissive: "#c6a17d",
   emissiveIntensity: 0.006,
+  flatShading: true,
   map: kraftPaperTexture,
   bumpMap: paperReliefTexture,
   bumpScale: 0.1
@@ -315,38 +342,42 @@ floatGroup.add(coreMesh);
 const coreEdges = new THREE.LineSegments(
   new THREE.EdgesGeometry(coreGeometry),
   new THREE.LineBasicMaterial({
-    color: "#d4b194",
+    color: "#c49b74",
     transparent: true,
-    opacity: 0.85
+    opacity: 0.9
   })
 );
 coreMesh.add(coreEdges);
 
+const coreCreaseMaterial = new THREE.LineBasicMaterial({
+  color: "#b38863",
+  transparent: true,
+  opacity: 0.45
+});
+const coreCrease = new THREE.LineSegments(
+  new THREE.WireframeGeometry(coreGeometry),
+  coreCreaseMaterial
+);
+coreCrease.scale.setScalar(0.995);
+coreMesh.add(coreCrease);
+
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 
-const faceGeometry = createRoundedPolygonGeometry(0.92, 5);
+const faceGeometry = createOrigamiCrystalGeometry(0.62, 0.95);
 const faceFrames: FaceRuntime[] = [];
 const clickableMeshes: THREE.Object3D[] = [];
 const decorativeShards: DecorativeShard[] = [];
 
 const normals = [
-  new THREE.Vector3(0.6, 0.45, 1),
-  new THREE.Vector3(-1, 0.28, 0.36),
-  new THREE.Vector3(0.12, -0.92, 0.48),
-  new THREE.Vector3(0.92, -0.18, -0.4)
+  new THREE.Vector3(0.65, 0.5, 0.58),
+  new THREE.Vector3(-0.72, 0.42, 0.55),
+  new THREE.Vector3(0.18, -0.82, 0.54),
+  new THREE.Vector3(0.78, -0.18, 0.6),
+  new THREE.Vector3(-0.15, 0.75, 0.62)
 ].map((vector) => vector.normalize());
 
-const shardNormals = [
-  new THREE.Vector3(0.92, 0.56, 0.2),
-  new THREE.Vector3(-0.82, 0.62, 0.22),
-  new THREE.Vector3(0.12, 0.96, -0.12),
-  new THREE.Vector3(0.96, -0.42, 0.12),
-  new THREE.Vector3(-0.76, -0.38, 0.58),
-  new THREE.Vector3(-0.08, -0.98, -0.18),
-  new THREE.Vector3(0.56, 0.12, -0.9),
-  new THREE.Vector3(-0.44, 0.02, -0.92)
-].map((vector) => vector.normalize());
+const shardNormals = generateEvenSphereNormals(8, 1.3);
 
 faces.forEach((face, index) => {
   const runtime = createFaceRuntime(face, normals[index], index);
@@ -360,6 +391,7 @@ shardNormals.forEach((normal, index) => {
   decorativeShards.push(shard);
   floatGroup.add(shard.mesh);
   floatGroup.add(shard.outline);
+  floatGroup.add(shard.crease);
 });
 
 let hoveredId: string | null = null;
@@ -424,11 +456,15 @@ function tick(): void {
     const outlineMaterial = shard.outline.material as THREE.LineBasicMaterial;
     shard.mesh.position.copy(shard.basePosition);
     shard.outline.position.copy(shard.basePosition);
+    shard.crease.position.copy(shard.basePosition);
     const drift = Math.sin(elapsed * 1.2 + shard.phase) * shard.drift;
     shard.mesh.position.addScaledVector(shard.basePosition.clone().normalize(), drift);
     shard.outline.position.copy(shard.mesh.position);
+    shard.crease.position.copy(shard.mesh.position);
     shard.mesh.rotation.z += 0.0015;
     shard.mesh.rotation.x = Math.sin(elapsed * 0.8 + shard.phase) * 0.18;
+    shard.outline.quaternion.copy(shard.mesh.quaternion);
+    shard.crease.quaternion.copy(shard.mesh.quaternion);
     outlineMaterial.opacity = 0.24 + (Math.sin(elapsed * 1.4 + shard.phase) + 1) * 0.16;
   });
 
@@ -456,7 +492,7 @@ tick();
 
 function createFaceRuntime(data: FaceData, normal: THREE.Vector3, index: number): FaceRuntime {
   const pivot = new THREE.Group();
-  const basePosition = normal.clone().multiplyScalar(1.44);
+  const basePosition = normal.clone().multiplyScalar(1.78);
   pivot.position.copy(basePosition);
   pivot.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
 
@@ -465,54 +501,66 @@ function createFaceRuntime(data: FaceData, normal: THREE.Vector3, index: number)
   faceMesh.rotation.z = data.angle;
   pivot.add(faceMesh);
 
-  const faceOutline = new THREE.LineLoop(
-    new THREE.BufferGeometry().setFromPoints(extractOutlinePoints(0.92, 5)),
+  const faceOutline = new THREE.LineSegments(
+    new THREE.EdgesGeometry(faceGeometry),
     new THREE.LineBasicMaterial({
-      color: "#cfac8c",
+      color: "#c49b74",
       transparent: true,
-      opacity: 0.56
+      opacity: 0.72
     })
   );
-  faceOutline.rotation.z = data.angle;
-  pivot.add(faceOutline);
+  faceOutline.scale.setScalar(1.005);
+  faceMesh.add(faceOutline);
+
+  const faceCrease = new THREE.LineSegments(
+    new THREE.WireframeGeometry(faceGeometry),
+    new THREE.LineBasicMaterial({
+      color: "#b38863",
+      transparent: true,
+      opacity: 0.32
+    })
+  );
+  faceCrease.scale.setScalar(0.99);
+  faceMesh.add(faceCrease);
 
   const panelHinge = new THREE.Group();
-  panelHinge.position.set(0, 0.56, -0.02);
+  panelHinge.position.set(0, 0.44, -0.04);
   panelHinge.rotation.x = -Math.PI * 0.98;
-  panelHinge.rotation.z = data.angle * 0.18;
+  panelHinge.rotation.z = data.angle * 0.12;
   pivot.add(panelHinge);
 
-  const panelShape = createPanelGeometry(2.45, 2.8, 0.16);
+  const panelShape = createPanelGeometry(1.7, 2.0, 0.12);
   const panelMesh = new THREE.Mesh(panelShape, panelMaterial.clone());
-  panelMesh.position.set(0, -1.46, 0);
-  panelMesh.rotation.z = data.angle * -0.08;
-  panelMesh.rotation.x = 0.06;
+  panelMesh.position.set(0, -1.06, 0);
+  panelMesh.rotation.z = data.angle * -0.06;
+  panelMesh.rotation.x = 0.04;
   panelHinge.add(panelMesh);
 
   const panelOutline = new THREE.LineLoop(
-    new THREE.BufferGeometry().setFromPoints(extractRoundedRectPoints(1.16, 1.34, 0.16)),
+    new THREE.BufferGeometry().setFromPoints(extractRoundedRectPoints(0.8, 0.96, 0.12)),
     new THREE.LineBasicMaterial({
       color: data.accent,
       transparent: true,
-      opacity: 0.3
+      opacity: 0.35
     })
   );
   panelOutline.position.copy(panelMesh.position);
   panelHinge.add(panelOutline);
 
-  const foldLine = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.16, 0.05),
-    new THREE.MeshBasicMaterial({
+  const panelFold = new THREE.LineSegments(
+    new THREE.EdgesGeometry(panelShape),
+    new THREE.LineBasicMaterial({
       color: "#e1c2a9",
       transparent: true,
-      opacity: 0.48
+      opacity: 0.36
     })
   );
-  foldLine.position.set(0, -0.02, 0.03);
-  pivot.add(foldLine);
+  panelFold.position.copy(panelMesh.position);
+  panelFold.rotation.copy(panelMesh.rotation);
+  panelHinge.add(panelFold);
 
   const panelAnchor = new THREE.Object3D();
-  panelAnchor.position.set(0, -1.36, 0.06);
+  panelAnchor.position.set(0, -0.96, 0.04);
   panelMesh.add(panelAnchor);
 
   return {
@@ -531,63 +579,115 @@ function createFaceRuntime(data: FaceData, normal: THREE.Vector3, index: number)
 }
 
 function createDecorativeShard(normal: THREE.Vector3, index: number): DecorativeShard {
-  const shardGeometry = createRoundedPolygonGeometry(0.44 + (index % 3) * 0.06, index % 2 === 0 ? 3 : 4);
+  const type = index % 4;
+  let shardGeometry: THREE.BufferGeometry;
+  const size = 0.28 + (index % 3) * 0.05;
+
+  if (type === 0) {
+    shardGeometry = new THREE.TetrahedronGeometry(size * 1.1, 0);
+  } else if (type === 1) {
+    shardGeometry = new THREE.ConeGeometry(size, size * 1.6, 4, 1);
+  } else if (type === 2) {
+    shardGeometry = new THREE.OctahedronGeometry(size * 0.9, 0);
+  } else {
+    shardGeometry = new THREE.ConeGeometry(size * 0.85, size * 1.4, 3, 1);
+  }
+
   const shardMaterial = paperMaterial.clone();
   shardMaterial.color = new THREE.Color(index % 2 === 0 ? "#d7b38e" : "#caa57f");
   shardMaterial.emissive = new THREE.Color("#bc936d");
   shardMaterial.emissiveIntensity = 0.015;
+  shardMaterial.flatShading = true;
 
   const mesh = new THREE.Mesh(shardGeometry, shardMaterial);
-  const basePosition = normal.clone().multiplyScalar(1.9 + (index % 3) * 0.18);
+  const basePosition = normal.clone().multiplyScalar(2.55 + (index % 3) * 0.22);
   mesh.position.copy(basePosition);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
   mesh.rotation.z = index * 0.62;
 
-  const outline = new THREE.LineLoop(
-    new THREE.BufferGeometry().setFromPoints(extractOutlinePoints(0.44 + (index % 3) * 0.06, index % 2 === 0 ? 3 : 4)),
+  const outline = new THREE.LineSegments(
+    new THREE.EdgesGeometry(shardGeometry),
     new THREE.LineBasicMaterial({
-      color: "#d7b395",
+      color: "#c49b74",
       transparent: true,
-      opacity: 0.32
+      opacity: 0.55
     })
   );
   outline.position.copy(basePosition);
   outline.quaternion.copy(mesh.quaternion);
   outline.rotation.z = mesh.rotation.z;
 
+  const crease = new THREE.LineSegments(
+    new THREE.WireframeGeometry(shardGeometry),
+    new THREE.LineBasicMaterial({
+      color: "#b38863",
+      transparent: true,
+      opacity: 0.22
+    })
+  );
+  crease.position.copy(basePosition);
+  crease.quaternion.copy(mesh.quaternion);
+  crease.rotation.z = mesh.rotation.z;
+  crease.scale.setScalar(0.99);
+
   return {
     mesh,
     outline,
+    crease,
     basePosition,
     phase: index * 0.78,
-    drift: 0.05 + (index % 3) * 0.01
+    drift: 0.04 + (index % 3) * 0.01
   };
 }
 
-function createRoundedPolygonGeometry(radius: number, sides: number): THREE.ShapeGeometry {
-  const shape = new THREE.Shape();
-  const cornerRadius = radius * 0.18;
-  const points = extractOutlinePoints(radius, sides);
+function generateEvenSphereNormals(count: number, offset: number): THREE.Vector3[] {
+  const vectors: THREE.Vector3[] = [];
+  const phi = Math.PI * (3 - Math.sqrt(5));
 
-  points.forEach((point, index) => {
-    const prev = points[(index - 1 + points.length) % points.length];
-    const next = points[(index + 1) % points.length];
-    const prevDir = prev.clone().sub(point).normalize();
-    const nextDir = next.clone().sub(point).normalize();
-    const start = point.clone().add(prevDir.multiplyScalar(cornerRadius));
-    const end = point.clone().add(nextDir.multiplyScalar(cornerRadius));
+  for (let i = 0; i < count; i += 1) {
+    const y = 1 - (i / (count - 1)) * 2;
+    const radius = Math.sqrt(1 - y * y);
+    const theta = phi * i + offset;
+    const x = Math.cos(theta) * radius;
+    const z = Math.sin(theta) * radius;
+    vectors.push(new THREE.Vector3(x, y, z).normalize());
+  }
 
-    if (index === 0) {
-      shape.moveTo(start.x, start.y);
-    } else {
-      shape.lineTo(start.x, start.y);
-    }
+  return vectors;
+}
 
-    shape.quadraticCurveTo(point.x, point.y, end.x, end.y);
-  });
+function createOrigamiCrystalGeometry(radius: number, height: number): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  const r = radius;
+  const depth = height * 0.6;
 
-  shape.closePath();
-  return new THREE.ShapeGeometry(shape, 24);
+  const vertices = new Float32Array([
+    // Front face (two triangles) - carries the label
+    -r, -r, 0,   r, -r, 0,   r,  r, 0,
+    -r, -r, 0,   r,  r, 0,  -r,  r, 0,
+    // Side faces (front edge to apex)
+    -r, -r, 0,  -r,  r, 0,   0,  0, -depth,
+    -r,  r, 0,   r,  r, 0,   0,  0, -depth,
+     r,  r, 0,   r, -r, 0,   0,  0, -depth,
+     r, -r, 0,  -r, -r, 0,   0,  0, -depth
+  ]);
+
+  const uvs = new Float32Array([
+    // Front face UVs
+    0, 0,   1, 0,   1, 1,
+    0, 0,   1, 1,   0, 1,
+    // Side face UVs
+    0, 0,   1, 0,   0.5, 1,
+    0, 0,   1, 0,   0.5, 1,
+    0, 0,   1, 0,   0.5, 1,
+    0, 0,   1, 0,   0.5, 1
+  ]);
+
+  geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+  geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  geometry.computeVertexNormals();
+
+  return geometry;
 }
 
 function createPanelGeometry(width: number, height: number, radius: number): THREE.ShapeGeometry {
@@ -602,15 +702,6 @@ function createPanelGeometry(width: number, height: number, radius: number): THR
   shape.lineTo(-width / 2, height / 2 - radius);
   shape.quadraticCurveTo(-width / 2, height / 2, -width / 2 + radius, height / 2);
   return new THREE.ShapeGeometry(shape, 28);
-}
-
-function extractOutlinePoints(radius: number, sides: number): THREE.Vector3[] {
-  const points: THREE.Vector3[] = [];
-  for (let index = 0; index < sides; index += 1) {
-    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / sides;
-    points.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 0.01));
-  }
-  return points;
 }
 
 function extractRoundedRectPoints(halfWidth: number, halfHeight: number, radius: number): THREE.Vector3[] {
@@ -637,6 +728,7 @@ function buildPaperMaterial(label: string): THREE.MeshStandardMaterial {
   material.emissive = new THREE.Color("#c29672");
   material.emissiveIntensity = 0.008;
   material.transparent = true;
+  material.flatShading = true;
   return material;
 }
 
@@ -908,8 +1000,6 @@ function positionCard(): void {
     return;
   }
 
-  activeCard.style.left = "50%";
-  activeCard.style.top = "50%";
   activeCard.style.setProperty("--card-scale", "1");
 }
 

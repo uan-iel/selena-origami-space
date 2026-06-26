@@ -1,0 +1,20 @@
+{
+  "name": "selena-origami-space",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && node scripts/postbuild-inline.mjs",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/three": "^0.179.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.2"
+  },
+  "dependencies": {
+    "gsap": "^3.13.0",
+    "three": "^0.179.1"
+  }
+}

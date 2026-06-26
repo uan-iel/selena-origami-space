@@ -470,6 +470,8 @@ shardNormals.forEach((normal, index) => {
   floatGroup.add(shard.crease);
 });
 
+const textureLoader = new THREE.TextureLoader();
+
 PHOTO_URLS.forEach((url, index) => {
   const envelope = createEnvelope(url, index);
   envelopes.push(envelope);
@@ -488,8 +490,6 @@ let lastGalleryPointerX = 0;
 let galleryDragDistance = 0;
 let hoveredEnvelopeIndex: number | null = null;
 let openedEnvelopeIndex: number | null = null;
-
-const textureLoader = new THREE.TextureLoader();
 
 function enterGallery(): void {
   galleryMode = true;

@@ -48,6 +48,7 @@ type EnvelopeRuntime = {
   photoUrl: string;
   index: number;
   baseAngle: number;
+  depth: number;
 };
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -490,6 +491,7 @@ let lastGalleryPointerX = 0;
 let galleryDragDistance = 0;
 let hoveredEnvelopeIndex: number | null = null;
 let openedEnvelopeIndex: number | null = null;
+let activePointerId: number | null = null;
 
 function enterGallery(): void {
   galleryMode = true;
@@ -600,10 +602,10 @@ function closeLightbox(): void {
 canvas.addEventListener("pointermove", (event) => {
   updatePointer(event.clientX, event.clientY);
 
-  if (galleryMode && isGalleryDragging) {
+  if (galleryMode && isGalleryDragging && event.pointerId === activePointerId) {
     const deltaX = event.clientX - lastGalleryPointerX;
-    galleryRotation -= deltaX * 0.005;
-    galleryVelocity = -deltaX * 0.005;
+    galleryRotation -= deltaX * 0.006;
+    galleryVelocity = -deltaX * 0.006;
     lastGalleryPointerX = event.clientX;
     galleryDragDistance += Math.abs(deltaX);
     return;
@@ -623,10 +625,13 @@ canvas.addEventListener("pointermove", (event) => {
 canvas.addEventListener("pointerdown", (event) => {
   if (galleryMode) {
     isGalleryDragging = true;
+    activePointerId = event.pointerId;
+    hoveredEnvelopeIndex = null;
     lastGalleryPointerX = event.clientX;
     galleryDragDistance = 0;
     galleryVelocity = 0;
     canvas.style.cursor = "grabbing";
+    canvas.setPointerCapture(event.pointerId);
     return;
   }
 
@@ -637,8 +642,9 @@ canvas.addEventListener("pointerdown", (event) => {
 canvas.addEventListener("pointerup", (event) => {
   updatePointer(event.clientX, event.clientY);
 
-  if (galleryMode) {
+  if (galleryMode && event.pointerId === activePointerId) {
     isGalleryDragging = false;
+    activePointerId = null;
     canvas.style.cursor = "grab";
 
     if (galleryDragDistance < 8) {
@@ -663,6 +669,22 @@ canvas.addEventListener("pointerup", (event) => {
   }
 
   canvas.style.cursor = hoveredId ? "pointer" : "grab";
+});
+
+window.addEventListener("pointerup", (event) => {
+  if (galleryMode && isGalleryDragging && event.pointerId === activePointerId) {
+    isGalleryDragging = false;
+    activePointerId = null;
+    canvas.style.cursor = "grab";
+  }
+});
+
+window.addEventListener("pointercancel", (event) => {
+  if (galleryMode && isGalleryDragging && event.pointerId === activePointerId) {
+    isGalleryDragging = false;
+    activePointerId = null;
+    canvas.style.cursor = "grab";
+  }
 });
 
 controls.addEventListener("start", () => {
@@ -769,11 +791,37 @@ function tick(): void {
 
       const isHovered = hoveredEnvelopeIndex === index;
       const isOpened = openedEnvelopeIndex === index;
-      const targetFlapRot = isHovered || isOpened ? -Math.PI * 0.75 : 0;
+      const isFront = frontFactor > 0.85;
+
+      let targetFlapRot = 0;
+      let targetPhotoOpacity = 0;
+      let targetPhotoY = -0.12;
+      let targetPhotoZ = envelope.depth / 2 + 0.01;
+      let targetPhotoScale = 0.88;
+
+      if (isOpened) {
+        targetFlapRot = -Math.PI * 0.82;
+        targetPhotoOpacity = 1;
+        targetPhotoY = 0.2;
+        targetPhotoZ = envelope.depth / 2 + 0.14;
+        targetPhotoScale = 1;
+      } else if (isHovered && isFront) {
+        targetFlapRot = -Math.PI * 0.38;
+        targetPhotoOpacity = 0.35;
+        targetPhotoY = -0.04;
+        targetPhotoZ = envelope.depth / 2 + 0.04;
+        targetPhotoScale = 0.92;
+      }
+
       envelope.flap.rotation.x += (targetFlapRot - envelope.flap.rotation.x) * 0.1;
 
       const photoMaterial = envelope.photo.material as THREE.MeshBasicMaterial;
-      photoMaterial.opacity = 0.85 + frontFactor * 0.15;
+      photoMaterial.opacity += (targetPhotoOpacity - photoMaterial.opacity) * 0.1;
+      envelope.photo.position.y += (targetPhotoY - envelope.photo.position.y) * 0.1;
+      envelope.photo.position.z += (targetPhotoZ - envelope.photo.position.z) * 0.1;
+      const currentScale = envelope.photo.scale.x;
+      const nextScale = currentScale + (targetPhotoScale - currentScale) * 0.1;
+      envelope.photo.scale.setScalar(nextScale);
     });
   }
 
@@ -948,20 +996,43 @@ function createEnvelope(photoUrl: string, index: number): EnvelopeRuntime {
   body.userData.envelopeIndex = index;
   group.add(body);
 
-  const photoTexture = textureLoader.load(photoUrl);
+  const photoTexture = textureLoader.load(photoUrl, (texture) => {
+    const img = texture.image;
+    if (!img || !img.width || !img.height) {
+      return;
+    }
+
+    const aspect = img.width / img.height;
+    const maxW = width * 0.78;
+    const maxH = height * 0.78;
+
+    let pW: number;
+    let pH: number;
+    if (aspect > maxW / maxH) {
+      pW = maxW;
+      pH = maxW / aspect;
+    } else {
+      pH = maxH;
+      pW = maxH * aspect;
+    }
+
+    photo.geometry.dispose();
+    photo.geometry = new THREE.PlaneGeometry(pW, pH);
+  });
   photoTexture.colorSpace = THREE.SRGBColorSpace;
   photoTexture.minFilter = THREE.LinearFilter;
   photoTexture.magFilter = THREE.LinearFilter;
 
-  const photoGeometry = new THREE.PlaneGeometry(width * 0.82, height * 0.64);
+  const photoGeometry = new THREE.PlaneGeometry(width * 0.78, height * 0.78);
   const photoMaterial = new THREE.MeshBasicMaterial({
     map: photoTexture,
     transparent: true,
-    opacity: 0.9,
+    opacity: 0,
     side: THREE.DoubleSide
   });
   const photo = new THREE.Mesh(photoGeometry, photoMaterial);
-  photo.position.set(0, -0.04, depth / 2 + 0.01);
+  photo.position.set(0, -0.12, depth / 2 + 0.01);
+  photo.scale.setScalar(0.88);
   photo.userData.envelopeIndex = index;
   group.add(photo);
 
@@ -1016,7 +1087,8 @@ function createEnvelope(photoUrl: string, index: number): EnvelopeRuntime {
     crease,
     photoUrl,
     index,
-    baseAngle
+    baseAngle,
+    depth
   };
 }
 

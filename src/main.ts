@@ -49,10 +49,6 @@ app.innerHTML = `
     <div class="hero-copy">
       <p class="eyebrow">Origami Space · 3D Interactive Portrait</p>
       <h1>Selena Yuan <span>折叠人生</span></h1>
-      <p class="lede">
-        在温柔的折纸空间里旋转、悬停、点击每一面，
-        看见我如何把好奇心、实践、热爱与未来，一层层展开。
-      </p>
       <div class="hint-row">
         <span>拖拽旋转</span>
         <span>悬停高亮</span>

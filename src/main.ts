@@ -15,30 +15,21 @@ type FaceData = {
   html: string;
 };
 
-type FaceRuntime = {
+type InfoEnvelopeRuntime = {
   data: FaceData;
-  pivot: THREE.Group;
-  faceMesh: THREE.Mesh;
-  faceOutline: THREE.LineSegments;
-  panelHinge: THREE.Group;
-  panelMesh: THREE.Mesh;
-  panelOutline: THREE.LineLoop;
-  panelAnchor: THREE.Object3D;
-  basePosition: THREE.Vector3;
-  normal: THREE.Vector3;
-  pulseOffset: number;
-};
-
-type DecorativeShard = {
-  mesh: THREE.Mesh;
+  group: THREE.Group;
+  body: THREE.Mesh;
+  flap: THREE.Mesh;
+  label: THREE.Mesh;
   outline: THREE.LineSegments;
   crease: THREE.LineSegments;
   basePosition: THREE.Vector3;
-  phase: number;
-  drift: number;
+  baseRotation: THREE.Euler;
+  hoverT: number;
+  openT: number;
 };
 
-type EnvelopeRuntime = {
+type PhotoEnvelopeRuntime = {
   group: THREE.Group;
   body: THREE.Mesh;
   photo: THREE.Mesh;
@@ -61,12 +52,12 @@ app.innerHTML = `
   <main class="page-shell">
     <div class="grain"></div>
     <div class="hero-copy" id="heroCopy">
-      <p class="eyebrow">Origami Space · 3D Interactive Portrait</p>
+      <p class="eyebrow">Origami · 3D Interactive Portrait</p>
       <h1>Selena Yuan</h1>
       <div class="hint-row">
         <span>拖拽旋转</span>
-        <span>悬停高亮</span>
-        <span>点击翻折展开</span>
+        <span>点击信封</span>
+        <span>展开信息</span>
       </div>
     </div>
     <section class="scene-frame">
@@ -76,7 +67,7 @@ app.innerHTML = `
       </div>
     </section>
     <aside class="ambient-note" id="ambientNote">
-      <p>Warm paper, soft shadows, and a life still unfolding.</p>
+      <p>Paper cranes, sealed letters, and a story still unfolding.</p>
     </aside>
     <div class="gallery-view" id="galleryView">
       <button class="gallery-back" id="galleryBack" aria-label="返回主界面">
@@ -103,12 +94,12 @@ const PHOTO_URLS = [
 const faces: FaceData[] = [
   {
     id: "about",
-    eyebrow: "Face 01",
+    eyebrow: "Envelope 01",
     title: "关于我",
     shortLabel: "关于我",
     subtitle: "一个热爱尝试、永远好奇的 ENFP 女孩",
-    angle: 0.3,
-    accent: "#C9A88C",
+    angle: 0,
+    accent: "#c9a88c",
     html: `
       <section class="panel-block">
         <p class="panel-kicker">Personal Background</p>
@@ -132,12 +123,12 @@ const faces: FaceData[] = [
   },
   {
     id: "traits",
-    eyebrow: "Face 02",
+    eyebrow: "Envelope 02",
     title: "性格与热爱",
     shortLabel: "热爱",
     subtitle: "擅长连接人、内容和新工具的表达者",
-    angle: 1.9,
-    accent: "#D7B79F",
+    angle: 0,
+    accent: "#d7b79f",
     html: `
       <section class="panel-block">
         <p class="panel-kicker">Traits & Strengths</p>
@@ -168,12 +159,12 @@ const faces: FaceData[] = [
   },
   {
     id: "journey",
-    eyebrow: "Face 03",
+    eyebrow: "Envelope 03",
     title: "实践轨迹",
     shortLabel: "实践",
     subtitle: "在内容、社群、采访与协同中积累真实能力",
-    angle: 3.5,
-    accent: "#C59A78",
+    angle: 0,
+    accent: "#c59a78",
     html: `
       <section class="panel-block">
         <p class="panel-kicker">Internships & Activities</p>
@@ -206,12 +197,12 @@ const faces: FaceData[] = [
   },
   {
     id: "future",
-    eyebrow: "Face 04",
+    eyebrow: "Envelope 04",
     title: "未来方向",
     shortLabel: "未来",
     subtitle: "成为懂用户、懂技术、懂商业的产品人",
-    angle: 5.1,
-    accent: "#B78A68",
+    angle: 0,
+    accent: "#b78a68",
     html: `
       <section class="panel-block">
         <p class="panel-kicker">Future Direction</p>
@@ -235,12 +226,12 @@ const faces: FaceData[] = [
   },
   {
     id: "gallery",
-    eyebrow: "Face 05",
+    eyebrow: "Envelope 05",
     title: "你想看看我吗！",
     shortLabel: "看看我",
     subtitle: "四封信，四张瞬间，等你来拆开",
-    angle: 4.7,
-    accent: "#D4A574",
+    angle: 0,
+    accent: "#d4a574",
     html: `
       <section class="panel-block">
         <p class="panel-kicker">Photo Gallery</p>
@@ -249,18 +240,21 @@ const faces: FaceData[] = [
       </section>
       <section class="panel-block">
         <p class="panel-mini-title">玩法</p>
-        <p class="panel-text">点击这个折纸面进入照片信封空间，左右拖拽旋转，把任一信封移到最前，点击即可打开照片。</p>
+        <p class="panel-text">点击下方的按钮进入照片信封空间，左右拖拽旋转，把任一信封移到最前，点击即可打开照片。</p>
+      </section>
+      <section class="panel-block gallery-enter-block">
+        <button class="gallery-enter" data-enter-gallery>进入照片空间</button>
       </section>
     `
   },
   {
     id: "contact",
-    eyebrow: "Face 06",
+    eyebrow: "Envelope 06",
     title: "联系我",
     shortLabel: "联系",
     subtitle: "期待一起做出有温度的好产品",
-    angle: 0.8,
-    accent: "#C9A88C",
+    angle: 0,
+    accent: "#c9a88c",
     html: `
       <section class="panel-block">
         <p class="panel-kicker">Contact</p>
@@ -299,15 +293,16 @@ activeCard.className = "detail-card";
 cardLayer.appendChild(activeCard);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog("#faf6f0", 8, 18);
+scene.background = new THREE.Color("#f7f4ef");
+scene.fog = new THREE.Fog("#f7f4ef", 10, 22);
 
 const sizes = {
   width: window.innerWidth,
   height: window.innerHeight
 };
 
-const camera = new THREE.PerspectiveCamera(36, sizes.width / sizes.height, 0.1, 100);
-camera.position.set(0, 0.8, 8.8);
+const camera = new THREE.PerspectiveCamera(42, sizes.width / sizes.height, 0.1, 100);
+camera.position.set(0, 0.4, 9.5);
 scene.add(camera);
 
 const renderer = new THREE.WebGLRenderer({
@@ -318,169 +313,145 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(sizes.width, sizes.height);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.enablePan = false;
 controls.enableZoom = false;
-controls.minPolarAngle = 0.2;
-controls.maxPolarAngle = Math.PI - 0.2;
-controls.rotateSpeed = 0.9;
-controls.target.set(0, 0.2, 0);
+controls.minPolarAngle = 0.05;
+controls.maxPolarAngle = Math.PI - 0.05;
+controls.rotateSpeed = 0.75;
+controls.dampingFactor = 0.06;
+controls.target.set(0, 0, 0);
 controls.update();
 
-const ambientLight = new THREE.HemisphereLight("#fff7ef", "#d9b89c", 1.4);
+const ambientLight = new THREE.HemisphereLight("#fffdfb", "#e8ddd0", 1.35);
 scene.add(ambientLight);
 
-const keyLight = new THREE.DirectionalLight("#fff1dd", 1.7);
-keyLight.position.set(4, 6, 5);
+const keyLight = new THREE.DirectionalLight("#fff8f0", 2.2);
+keyLight.position.set(5, 8, 6);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.width = 1024;
+keyLight.shadow.mapSize.height = 1024;
+keyLight.shadow.camera.near = 0.5;
+keyLight.shadow.camera.far = 25;
+keyLight.shadow.bias = -0.0005;
 scene.add(keyLight);
 
-const rimLight = new THREE.DirectionalLight("#f7d7bd", 2.1);
+const rimLight = new THREE.DirectionalLight("#f0e6d8", 1.4);
 rimLight.position.set(-6, 2, -5);
 scene.add(rimLight);
 
-const fillLight = new THREE.PointLight("#ead5c5", 1.3, 18);
-fillLight.position.set(0, -3, 6);
+const fillLight = new THREE.DirectionalLight("#f5efe6", 0.9);
+fillLight.position.set(-3, -2, 7);
 scene.add(fillLight);
 
-const origamiGroup = new THREE.Group();
-scene.add(origamiGroup);
+const paperTexture = new THREE.CanvasTexture(createPaperCanvas());
+paperTexture.wrapS = THREE.RepeatWrapping;
+paperTexture.wrapT = THREE.RepeatWrapping;
+paperTexture.repeat.set(2, 2);
+paperTexture.colorSpace = THREE.SRGBColorSpace;
 
-const floatGroup = new THREE.Group();
-origamiGroup.add(floatGroup);
+const paperBumpTexture = new THREE.CanvasTexture(createPaperBumpCanvas());
+paperBumpTexture.wrapS = THREE.RepeatWrapping;
+paperBumpTexture.wrapT = THREE.RepeatWrapping;
+paperBumpTexture.repeat.set(3, 3);
+paperBumpTexture.colorSpace = THREE.NoColorSpace;
+
+const paperMaterial = new THREE.MeshStandardMaterial({
+  color: "#faf8f4",
+  roughness: 0.92,
+  metalness: 0,
+  side: THREE.DoubleSide,
+  map: paperTexture,
+  bumpMap: paperBumpTexture,
+  bumpScale: 0.04
+});
+
+const envelopeInsideMaterial = new THREE.MeshStandardMaterial({
+  color: "#f2ede4",
+  roughness: 0.95,
+  metalness: 0,
+  side: THREE.DoubleSide,
+  map: paperTexture,
+  bumpMap: paperBumpTexture,
+  bumpScale: 0.03
+});
+
+const threadMaterial = new THREE.MeshStandardMaterial({
+  color: "#e8ddd0",
+  roughness: 1,
+  metalness: 0
+});
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+const mainGroup = new THREE.Group();
+scene.add(mainGroup);
+
+const craneGroup = createPaperCrane();
+craneGroup.position.set(0, 0, 0);
+mainGroup.add(craneGroup);
+
+const infoEnvelopes: InfoEnvelopeRuntime[] = [];
+const infoEnvelopeClickables: THREE.Object3D[] = [];
+
+const envelopePositions = [
+  new THREE.Vector3(2.6, 0.6, 1.1),
+  new THREE.Vector3(-2.3, -0.4, 1.4),
+  new THREE.Vector3(1.2, 1.4, -2.0),
+  new THREE.Vector3(-1.6, 1.0, -1.8),
+  new THREE.Vector3(0.4, -1.5, 2.2),
+  new THREE.Vector3(-0.8, -1.2, -2.4)
+];
+
+faces.forEach((face, index) => {
+  const runtime = createInfoEnvelope(face, index);
+  const position = envelopePositions[index];
+  runtime.group.position.copy(position);
+  runtime.basePosition.copy(position);
+
+  const lookTarget = position.clone().multiplyScalar(0.3).add(new THREE.Vector3(0, 0, 0));
+  runtime.group.lookAt(lookTarget);
+  runtime.baseRotation.copy(runtime.group.rotation);
+
+  infoEnvelopes.push(runtime);
+  infoEnvelopeClickables.push(runtime.body, runtime.flap);
+  mainGroup.add(runtime.group);
+});
 
 const galleryGroup = new THREE.Group();
 galleryGroup.visible = false;
 scene.add(galleryGroup);
 
-const galleryLight = new THREE.HemisphereLight("#fff7ef", "#d9b89c", 1.5);
+const galleryLight = new THREE.HemisphereLight("#fffdfb", "#e8ddd0", 1.3);
 galleryGroup.add(galleryLight);
 
-const galleryKeyLight = new THREE.DirectionalLight("#fff1dd", 1.6);
+const galleryKeyLight = new THREE.DirectionalLight("#fff8f0", 1.7);
 galleryKeyLight.position.set(3, 5, 6);
 galleryGroup.add(galleryKeyLight);
 
-const galleryRimLight = new THREE.DirectionalLight("#f7d7bd", 1.8);
+const galleryRimLight = new THREE.DirectionalLight("#f0e6d8", 1.5);
 galleryRimLight.position.set(-4, 2, -4);
 galleryGroup.add(galleryRimLight);
 
-const kraftPaperTexture = new THREE.CanvasTexture(createKraftPaperCanvas());
-kraftPaperTexture.wrapS = THREE.RepeatWrapping;
-kraftPaperTexture.wrapT = THREE.RepeatWrapping;
-kraftPaperTexture.repeat.set(2.2, 2.2);
-kraftPaperTexture.colorSpace = THREE.SRGBColorSpace;
-
-const paperReliefTexture = new THREE.CanvasTexture(createPaperReliefCanvas());
-paperReliefTexture.wrapS = THREE.RepeatWrapping;
-paperReliefTexture.wrapT = THREE.RepeatWrapping;
-paperReliefTexture.repeat.set(2.4, 2.4);
-paperReliefTexture.colorSpace = THREE.NoColorSpace;
-
-const paperMaterial = new THREE.MeshStandardMaterial({
-  color: "#d2b08e",
-  roughness: 1,
-  metalness: 0,
-  side: THREE.DoubleSide,
-  map: kraftPaperTexture,
-  bumpMap: paperReliefTexture,
-  bumpScale: 0.16
-});
-
-const panelMaterial = new THREE.MeshStandardMaterial({
-  color: "#cfab88",
-  roughness: 1,
-  metalness: 0,
-  side: THREE.DoubleSide,
-  transparent: true,
-  map: kraftPaperTexture,
-  bumpMap: paperReliefTexture,
-  bumpScale: 0.13
-});
-
-const coreGeometry = new THREE.OctahedronGeometry(0.72, 0);
-const coreMaterial = new THREE.MeshStandardMaterial({
-  color: "#d8b896",
-  roughness: 1,
-  metalness: 0,
-  emissive: "#c6a17d",
-  emissiveIntensity: 0.006,
-  flatShading: true,
-  map: kraftPaperTexture,
-  bumpMap: paperReliefTexture,
-  bumpScale: 0.1
-});
-const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
-floatGroup.add(coreMesh);
-
-const coreEdges = new THREE.LineSegments(
-  new THREE.EdgesGeometry(coreGeometry),
-  new THREE.LineBasicMaterial({
-    color: "#c49b74",
-    transparent: true,
-    opacity: 0.9
-  })
-);
-coreMesh.add(coreEdges);
-
-const coreCreaseMaterial = new THREE.LineBasicMaterial({
-  color: "#b38863",
-  transparent: true,
-  opacity: 0.45
-});
-const coreCrease = new THREE.LineSegments(
-  new THREE.WireframeGeometry(coreGeometry),
-  coreCreaseMaterial
-);
-coreCrease.scale.setScalar(0.995);
-coreMesh.add(coreCrease);
-
-const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
-
-const faceGeometry = createOrigamiCrystalGeometry(0.62, 0.95);
-const faceFrames: FaceRuntime[] = [];
-const clickableMeshes: THREE.Object3D[] = [];
-const decorativeShards: DecorativeShard[] = [];
-const envelopes: EnvelopeRuntime[] = [];
-const envelopeClickables: THREE.Object3D[] = [];
-
-const normals = [
-  new THREE.Vector3(0.65, 0.5, 0.58),
-  new THREE.Vector3(-0.72, 0.42, 0.55),
-  new THREE.Vector3(0.18, -0.82, 0.54),
-  new THREE.Vector3(0.78, -0.18, 0.6),
-  new THREE.Vector3(-0.15, 0.75, 0.62),
-  new THREE.Vector3(0.22, 0.82, 0.52)
-].map((vector) => vector.normalize());
-
-const shardNormals = generateEvenSphereNormals(8, 1.3);
-
-faces.forEach((face, index) => {
-  const runtime = createFaceRuntime(face, normals[index], index);
-  faceFrames.push(runtime);
-  clickableMeshes.push(runtime.faceMesh);
-  floatGroup.add(runtime.pivot);
-});
-
-shardNormals.forEach((normal, index) => {
-  const shard = createDecorativeShard(normal, index);
-  decorativeShards.push(shard);
-  floatGroup.add(shard.mesh);
-  floatGroup.add(shard.outline);
-  floatGroup.add(shard.crease);
-});
-
 const textureLoader = new THREE.TextureLoader();
 
+const photoEnvelopes: PhotoEnvelopeRuntime[] = [];
+const photoEnvelopeClickables: THREE.Object3D[] = [];
+
 PHOTO_URLS.forEach((url, index) => {
-  const envelope = createEnvelope(url, index);
-  envelopes.push(envelope);
-  envelopeClickables.push(envelope.body, envelope.photo, envelope.flap);
+  const envelope = createPhotoEnvelope(url, index);
+  photoEnvelopes.push(envelope);
+  photoEnvelopeClickables.push(envelope.body, envelope.photo, envelope.flap);
   galleryGroup.add(envelope.group);
 });
 
-let hoveredId: string | null = null;
 let activeId: string | null = null;
 let isDragging = false;
 let galleryMode = false;
@@ -489,9 +460,10 @@ let galleryVelocity = 0;
 let isGalleryDragging = false;
 let lastGalleryPointerX = 0;
 let galleryDragDistance = 0;
-let hoveredEnvelopeIndex: number | null = null;
-let openedEnvelopeIndex: number | null = null;
+let hoveredPhotoIndex: number | null = null;
+let openedPhotoIndex: number | null = null;
 let activePointerId: number | null = null;
+let hoveredInfoId: string | null = null;
 
 function enterGallery(): void {
   galleryMode = true;
@@ -501,8 +473,8 @@ function enterGallery(): void {
 
   gsap.to(camera.position, {
     x: 0,
-    y: 0.6,
-    z: 7.2,
+    y: 0.4,
+    z: 7.5,
     duration: 1,
     ease: "power2.inOut"
   });
@@ -514,7 +486,7 @@ function enterGallery(): void {
     ease: "power2.inOut"
   });
 
-  gsap.to(origamiGroup.scale, {
+  gsap.to(mainGroup.scale, {
     x: 0.001,
     y: 0.001,
     z: 0.001,
@@ -523,7 +495,7 @@ function enterGallery(): void {
   });
 
   setTimeout(() => {
-    origamiGroup.visible = false;
+    mainGroup.visible = false;
     galleryGroup.visible = true;
     galleryGroup.scale.setScalar(0.001);
     gsap.to(galleryGroup.scale, {
@@ -556,8 +528,8 @@ function exitGallery(): void {
 
   setTimeout(() => {
     galleryGroup.visible = false;
-    origamiGroup.visible = true;
-    gsap.to(origamiGroup.scale, {
+    mainGroup.visible = true;
+    gsap.to(mainGroup.scale, {
       x: 1,
       y: 1,
       z: 1,
@@ -568,14 +540,14 @@ function exitGallery(): void {
 
   gsap.to(camera.position, {
     x: 0,
-    y: 0.8,
-    z: 8.8,
+    y: 0.4,
+    z: 9.5,
     duration: 1,
     ease: "power2.inOut"
   });
   gsap.to(controls.target, {
     x: 0,
-    y: 0.2,
+    y: 0,
     z: 0,
     duration: 1,
     ease: "power2.inOut"
@@ -589,14 +561,146 @@ function exitGallery(): void {
 }
 
 function openLightbox(index: number): void {
-  openedEnvelopeIndex = index;
+  openedPhotoIndex = index;
   lightboxImg!.src = PHOTO_URLS[index];
   lightbox!.classList.add("visible");
 }
 
 function closeLightbox(): void {
   lightbox!.classList.remove("visible");
-  openedEnvelopeIndex = null;
+  openedPhotoIndex = null;
+}
+
+function updatePointer(clientX: number, clientY: number): void {
+  pointer.x = (clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+}
+
+function pickInfoEnvelope(): THREE.Object3D | null {
+  raycaster.setFromCamera(pointer, camera);
+  const intersections = raycaster.intersectObjects(infoEnvelopeClickables, false);
+  const hit = intersections[0]?.object ?? null;
+
+  if (hit) {
+    hoveredInfoId = hit.userData.faceId as string;
+  } else {
+    hoveredInfoId = null;
+  }
+
+  return hit;
+}
+
+function pickPhotoEnvelope(): THREE.Object3D | null {
+  raycaster.setFromCamera(pointer, camera);
+  const intersections = raycaster.intersectObjects(photoEnvelopeClickables, false);
+  const hit = intersections[0]?.object ?? null;
+
+  if (hit) {
+    hoveredPhotoIndex = hit.userData.envelopeIndex as number;
+  } else {
+    hoveredPhotoIndex = null;
+  }
+
+  return hit;
+}
+
+function setActiveFace(id: string | null): void {
+  activeId = id;
+
+  infoEnvelopes.forEach((runtime) => {
+    const isActive = runtime.data.id === id;
+    const targetOpen = isActive ? 1 : 0;
+
+    gsap.to(runtime, {
+      openT: targetOpen,
+      duration: 0.55,
+      ease: "power2.out"
+    });
+
+    const base = runtime.basePosition;
+    const pushTarget = base.clone().add(base.clone().normalize().multiplyScalar(isActive ? 0.5 : 0));
+    gsap.to(runtime.group.position, {
+      x: pushTarget.x,
+      y: pushTarget.y,
+      z: pushTarget.z,
+      duration: 0.55,
+      ease: "power2.out"
+    });
+  });
+
+  const content = faces.find((face) => face.id === id) ?? null;
+
+  if (!content) {
+    activeCard.classList.remove("visible");
+    activeCard.innerHTML = "";
+    return;
+  }
+
+  activeCard.innerHTML = `
+    <div class="card-shell">
+      <p class="card-eyebrow">${content.eyebrow}</p>
+      <h3>${content.title}</h3>
+      <p class="card-subtitle type-target">${content.subtitle}</p>
+      <div class="card-body">${content.html}</div>
+    </div>
+  `;
+
+  activeCard.classList.add("visible");
+
+  activeCard.querySelectorAll<HTMLElement>(".panel-block, .panel-grid, .tag-row, .stats-row, .timeline, .panel-list").forEach((item, index) => {
+    item.style.animationDelay = `${index * 80}ms`;
+  });
+
+  const enterButton = activeCard.querySelector<HTMLButtonElement>("[data-enter-gallery]");
+  if (enterButton) {
+    enterButton.addEventListener("click", () => {
+      enterGallery();
+    });
+  }
+
+  runTypewriterAnimation();
+}
+
+function positionCard(): void {
+  if (!activeCard.classList.contains("visible")) {
+    return;
+  }
+
+  activeCard.style.setProperty("--card-scale", "1");
+}
+
+function runTypewriterAnimation(): void {
+  const textTargets = activeCard.querySelectorAll<HTMLElement>(".type-target, .panel-quote, .panel-text, .panel-list p");
+
+  textTargets.forEach((element, index) => {
+    if (element.querySelector("*")) {
+      return;
+    }
+
+    const fullText = element.textContent?.replace(/\s+/g, " ").trim();
+
+    if (!fullText) {
+      return;
+    }
+
+    element.classList.add("is-typing");
+    element.textContent = "";
+
+    const state = { count: 0 };
+    gsap.to(state, {
+      count: fullText.length,
+      duration: Math.min(2.8, Math.max(0.9, fullText.length * 0.045)),
+      delay: 0.12 + index * 0.12,
+      ease: "none",
+      snap: "count",
+      onUpdate: () => {
+        element.textContent = fullText.slice(0, state.count);
+      },
+      onComplete: () => {
+        element.classList.remove("is-typing");
+      }
+    });
+  });
 }
 
 canvas.addEventListener("pointermove", (event) => {
@@ -612,21 +716,20 @@ canvas.addEventListener("pointermove", (event) => {
   }
 
   if (galleryMode) {
-    const hit = pickEnvelope();
+    const hit = pickPhotoEnvelope();
     canvas.style.cursor = hit ? "pointer" : "grab";
     return;
   }
 
-  const hit = pickFace();
-  hoveredId = hit?.userData.faceId ?? null;
-  canvas.style.cursor = hoveredId ? "pointer" : "grab";
+  const hit = pickInfoEnvelope();
+  canvas.style.cursor = hit ? "pointer" : "grab";
 });
 
 canvas.addEventListener("pointerdown", (event) => {
   if (galleryMode) {
     isGalleryDragging = true;
     activePointerId = event.pointerId;
-    hoveredEnvelopeIndex = null;
+    hoveredPhotoIndex = null;
     lastGalleryPointerX = event.clientX;
     galleryDragDistance = 0;
     galleryVelocity = 0;
@@ -648,7 +751,7 @@ canvas.addEventListener("pointerup", (event) => {
     canvas.style.cursor = "grab";
 
     if (galleryDragDistance < 8) {
-      const hit = pickEnvelope();
+      const hit = pickPhotoEnvelope();
       if (hit) {
         const index = hit.userData.envelopeIndex as number;
         openLightbox(index);
@@ -657,18 +760,18 @@ canvas.addEventListener("pointerup", (event) => {
     return;
   }
 
-  const hit = pickFace();
+  if (!isDragging) {
+    const hit = pickInfoEnvelope();
 
-  if (!isDragging && hit) {
-    const nextId = hit.userData.faceId as string;
-    if (nextId === "gallery") {
-      enterGallery();
-    } else {
+    if (hit) {
+      const nextId = hit.userData.faceId as string;
       setActiveFace(activeId === nextId ? null : nextId);
+    } else if (activeId) {
+      setActiveFace(null);
     }
   }
 
-  canvas.style.cursor = hoveredId ? "pointer" : "grab";
+  canvas.style.cursor = hoveredInfoId ? "pointer" : "grab";
 });
 
 window.addEventListener("pointerup", (event) => {
@@ -714,48 +817,44 @@ window.addEventListener("resize", () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
-setActiveFace("about");
-
 const clock = new THREE.Clock();
 
 function tick(): void {
   const elapsed = clock.getElapsedTime();
-  const pulse = (Math.sin(elapsed * 1.6) + 1) * 0.5;
+  const floatY = Math.sin(elapsed * 0.8) * 0.04;
 
-  if (!galleryMode || origamiGroup.visible) {
-    floatGroup.position.y = Math.sin(elapsed * 2.1) * 0.06;
-    coreMaterial.emissiveIntensity = 0.004 + pulse * 0.006;
-    coreMesh.rotation.y = elapsed * 0.1;
-    coreMesh.rotation.x = Math.sin(elapsed * 0.35) * 0.08;
+  if (!galleryMode || mainGroup.visible) {
+    craneGroup.position.y = floatY;
+    craneGroup.rotation.y = Math.sin(elapsed * 0.15) * 0.08;
+    craneGroup.rotation.z = Math.sin(elapsed * 0.12) * 0.03;
 
-    decorativeShards.forEach((shard) => {
-      const outlineMaterial = shard.outline.material as THREE.LineBasicMaterial;
-      shard.mesh.position.copy(shard.basePosition);
-      shard.outline.position.copy(shard.basePosition);
-      shard.crease.position.copy(shard.basePosition);
-      const drift = Math.sin(elapsed * 1.2 + shard.phase) * shard.drift;
-      shard.mesh.position.addScaledVector(shard.basePosition.clone().normalize(), drift);
-      shard.outline.position.copy(shard.mesh.position);
-      shard.crease.position.copy(shard.mesh.position);
-      shard.mesh.rotation.z += 0.0015;
-      shard.mesh.rotation.x = Math.sin(elapsed * 0.8 + shard.phase) * 0.18;
-      shard.outline.quaternion.copy(shard.mesh.quaternion);
-      shard.crease.quaternion.copy(shard.mesh.quaternion);
-      outlineMaterial.opacity = 0.24 + (Math.sin(elapsed * 1.4 + shard.phase) + 1) * 0.16;
-    });
+    infoEnvelopes.forEach((runtime, index) => {
+      const phase = index * 1.2;
+      const individualFloat = Math.sin(elapsed * 0.9 + phase) * 0.035;
+      const targetY = runtime.basePosition.y + floatY * 0.6 + individualFloat;
 
-    faceFrames.forEach((runtime) => {
-      const isHovered = runtime.data.id === hoveredId;
-      const isActive = runtime.data.id === activeId;
-      const glowStrength = isActive ? 1 : isHovered ? 0.74 : 0.36;
-      const targetZ = isActive ? 0.28 : isHovered ? 0.12 : 0;
-      const faceOutlineMaterial = runtime.faceOutline.material as THREE.LineBasicMaterial;
-      const panelOutlineMaterial = runtime.panelOutline.material as THREE.LineBasicMaterial;
-      runtime.faceMesh.position.z += (targetZ - runtime.faceMesh.position.z) * 0.12;
-      faceOutlineMaterial.opacity = 0.4 + glowStrength * 0.55;
-      panelOutlineMaterial.opacity = 0.22 + glowStrength * 0.35;
-      runtime.faceMesh.rotation.z = Math.sin(elapsed * 1.1 + runtime.pulseOffset) * 0.015;
-      runtime.faceMesh.scale.setScalar(1 + (isHovered ? 0.03 : 0));
+      runtime.group.position.y += (targetY - runtime.group.position.y) * 0.04;
+
+      const baseRotX = runtime.baseRotation.x + Math.sin(elapsed * 0.5 + phase) * 0.03;
+      const baseRotY = runtime.baseRotation.y + Math.cos(elapsed * 0.35 + phase) * 0.04;
+      const baseRotZ = runtime.baseRotation.z + Math.sin(elapsed * 0.25 + phase) * 0.02;
+
+      runtime.group.rotation.x += (baseRotX - runtime.group.rotation.x) * 0.04;
+      runtime.group.rotation.y += (baseRotY - runtime.group.rotation.y) * 0.04;
+      runtime.group.rotation.z += (baseRotZ - runtime.group.rotation.z) * 0.04;
+
+      const isHovered = runtime.data.id === hoveredInfoId;
+      const targetHover = isHovered ? 1 : 0;
+      runtime.hoverT += (targetHover - runtime.hoverT) * 0.12;
+
+      const flapTarget = -runtime.openT * Math.PI * 0.75 - runtime.hoverT * Math.PI * 0.25;
+      runtime.flap.rotation.x += (flapTarget - runtime.flap.rotation.x) * 0.1;
+
+      const scaleBase = 1 + runtime.hoverT * 0.04 + runtime.openT * 0.06;
+      runtime.group.scale.setScalar(scaleBase);
+
+      const labelOpacity = 0.55 + runtime.hoverT * 0.25 + runtime.openT * 0.2;
+      (runtime.label.material as THREE.MeshBasicMaterial).opacity = labelOpacity;
     });
   }
 
@@ -764,7 +863,7 @@ function tick(): void {
     galleryVelocity *= 0.94;
 
     const snapSpeed = 0.04;
-    const segment = (Math.PI * 2) / envelopes.length;
+    const segment = (Math.PI * 2) / photoEnvelopes.length;
     const nearest = Math.round(galleryRotation / segment) * segment;
     if (Math.abs(galleryVelocity) < 0.002) {
       galleryRotation += (nearest - galleryRotation) * snapSpeed;
@@ -772,7 +871,7 @@ function tick(): void {
 
     galleryGroup.position.y = Math.sin(elapsed * 1.2) * 0.08;
 
-    envelopes.forEach((envelope, index) => {
+    photoEnvelopes.forEach((envelope, index) => {
       const angle = envelope.baseAngle + galleryRotation;
       const radius = 3.1;
       envelope.group.position.x = Math.sin(angle) * radius;
@@ -789,8 +888,8 @@ function tick(): void {
         envelope.group.scale.x + (targetScale - envelope.group.scale.x) * 0.08
       );
 
-      const isHovered = hoveredEnvelopeIndex === index;
-      const isOpened = openedEnvelopeIndex === index;
+      const isHovered = hoveredPhotoIndex === index;
+      const isOpened = openedPhotoIndex === index;
       const isFront = frontFactor > 0.85;
 
       let targetFlapRot = 0;
@@ -833,157 +932,129 @@ function tick(): void {
 
 tick();
 
-function createFaceRuntime(data: FaceData, normal: THREE.Vector3, index: number): FaceRuntime {
-  const pivot = new THREE.Group();
-  const basePosition = normal.clone().multiplyScalar(1.78);
-  pivot.position.copy(basePosition);
-  pivot.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+function createInfoEnvelope(data: FaceData, index: number): InfoEnvelopeRuntime {
+  const group = new THREE.Group();
+  group.userData.faceId = data.id;
 
-  const faceMesh = new THREE.Mesh(faceGeometry, buildPaperMaterial(data.shortLabel));
-  faceMesh.userData.faceId = data.id;
-  faceMesh.rotation.z = data.angle;
-  pivot.add(faceMesh);
+  const width = 1.35;
+  const height = 0.9;
+  const depth = 0.1;
 
-  const faceOutline = new THREE.LineSegments(
-    new THREE.EdgesGeometry(faceGeometry),
-    new THREE.LineBasicMaterial({
-      color: "#c49b74",
-      transparent: true,
-      opacity: 0.72
-    })
-  );
-  faceOutline.scale.setScalar(1.005);
-  faceMesh.add(faceOutline);
+  const bodyGeometry = new THREE.BoxGeometry(width, height, depth);
+  const body = new THREE.Mesh(bodyGeometry, paperMaterial.clone());
+  body.userData.faceId = data.id;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  group.add(body);
 
-  const faceCrease = new THREE.LineSegments(
-    new THREE.WireframeGeometry(faceGeometry),
-    new THREE.LineBasicMaterial({
-      color: "#b38863",
-      transparent: true,
-      opacity: 0.32
-    })
-  );
-  faceCrease.scale.setScalar(0.99);
-  faceMesh.add(faceCrease);
+  const insideGeometry = new THREE.PlaneGeometry(width * 0.9, height * 0.9);
+  const inside = new THREE.Mesh(insideGeometry, envelopeInsideMaterial.clone());
+  inside.position.set(0, 0, -depth / 2 - 0.001);
+  group.add(inside);
 
-  const panelHinge = new THREE.Group();
-  panelHinge.position.set(0, 0.44, -0.04);
-  panelHinge.rotation.x = -Math.PI * 0.98;
-  panelHinge.rotation.z = data.angle * 0.12;
-  pivot.add(panelHinge);
+  const flapShape = new THREE.Shape();
+  flapShape.moveTo(-width / 2, 0);
+  flapShape.lineTo(width / 2, 0);
+  flapShape.lineTo(0, height * 0.55);
+  flapShape.lineTo(-width / 2, 0);
+  const flapGeometry = new THREE.ShapeGeometry(flapShape);
+  const flap = new THREE.Mesh(flapGeometry, paperMaterial.clone());
+  flap.position.set(0, height / 2, depth / 2 + 0.012);
+  flap.userData.faceId = data.id;
+  flap.castShadow = true;
+  group.add(flap);
 
-  const panelShape = createPanelGeometry(1.7, 2.0, 0.12);
-  const panelMesh = new THREE.Mesh(panelShape, panelMaterial.clone());
-  panelMesh.position.set(0, -1.06, 0);
-  panelMesh.rotation.z = data.angle * -0.06;
-  panelMesh.rotation.x = 0.04;
-  panelHinge.add(panelMesh);
-
-  const panelOutline = new THREE.LineLoop(
-    new THREE.BufferGeometry().setFromPoints(extractRoundedRectPoints(0.8, 0.96, 0.12)),
-    new THREE.LineBasicMaterial({
-      color: data.accent,
-      transparent: true,
-      opacity: 0.35
-    })
-  );
-  panelOutline.position.copy(panelMesh.position);
-  panelHinge.add(panelOutline);
-
-  const panelFold = new THREE.LineSegments(
-    new THREE.EdgesGeometry(panelShape),
-    new THREE.LineBasicMaterial({
-      color: "#e1c2a9",
-      transparent: true,
-      opacity: 0.36
-    })
-  );
-  panelFold.position.copy(panelMesh.position);
-  panelFold.rotation.copy(panelMesh.rotation);
-  panelHinge.add(panelFold);
-
-  const panelAnchor = new THREE.Object3D();
-  panelAnchor.position.set(0, -0.96, 0.04);
-  panelMesh.add(panelAnchor);
-
-  return {
-    data,
-    pivot,
-    faceMesh,
-    faceOutline,
-    panelHinge,
-    panelMesh,
-    panelOutline,
-    panelAnchor,
-    basePosition,
-    normal,
-    pulseOffset: index * 0.7
-  };
-}
-
-function createDecorativeShard(normal: THREE.Vector3, index: number): DecorativeShard {
-  const type = index % 4;
-  let shardGeometry: THREE.BufferGeometry;
-  const size = 0.28 + (index % 3) * 0.05;
-
-  if (type === 0) {
-    shardGeometry = new THREE.TetrahedronGeometry(size * 1.1, 0);
-  } else if (type === 1) {
-    shardGeometry = new THREE.ConeGeometry(size, size * 1.6, 4, 1);
-  } else if (type === 2) {
-    shardGeometry = new THREE.OctahedronGeometry(size * 0.9, 0);
-  } else {
-    shardGeometry = new THREE.ConeGeometry(size * 0.85, size * 1.4, 3, 1);
-  }
-
-  const shardMaterial = paperMaterial.clone();
-  shardMaterial.color = new THREE.Color(index % 2 === 0 ? "#d7b38e" : "#caa57f");
-  shardMaterial.emissive = new THREE.Color("#bc936d");
-  shardMaterial.emissiveIntensity = 0.015;
-  shardMaterial.flatShading = true;
-
-  const mesh = new THREE.Mesh(shardGeometry, shardMaterial);
-  const basePosition = normal.clone().multiplyScalar(2.55 + (index % 3) * 0.22);
-  mesh.position.copy(basePosition);
-  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
-  mesh.rotation.z = index * 0.62;
+  const labelTexture = new THREE.CanvasTexture(createEnvelopeLabelCanvas(data.shortLabel));
+  labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  labelTexture.colorSpace = THREE.SRGBColorSpace;
+  const labelGeometry = new THREE.PlaneGeometry(width * 0.62, height * 0.28);
+  const labelMaterial = new THREE.MeshBasicMaterial({
+    map: labelTexture,
+    transparent: true,
+    opacity: 0.55,
+    side: THREE.DoubleSide
+  });
+  const label = new THREE.Mesh(labelGeometry, labelMaterial);
+  label.position.set(0, -0.02, depth / 2 + 0.018);
+  label.userData.faceId = data.id;
+  group.add(label);
 
   const outline = new THREE.LineSegments(
-    new THREE.EdgesGeometry(shardGeometry),
+    new THREE.EdgesGeometry(bodyGeometry),
     new THREE.LineBasicMaterial({
-      color: "#c49b74",
+      color: "#d9cfc0",
       transparent: true,
       opacity: 0.55
     })
   );
-  outline.position.copy(basePosition);
-  outline.quaternion.copy(mesh.quaternion);
-  outline.rotation.z = mesh.rotation.z;
+  group.add(outline);
 
   const crease = new THREE.LineSegments(
-    new THREE.WireframeGeometry(shardGeometry),
+    new THREE.WireframeGeometry(bodyGeometry),
     new THREE.LineBasicMaterial({
-      color: "#b38863",
+      color: "#cdc2b2",
       transparent: true,
-      opacity: 0.22
+      opacity: 0.18
     })
   );
-  crease.position.copy(basePosition);
-  crease.quaternion.copy(mesh.quaternion);
-  crease.rotation.z = mesh.rotation.z;
   crease.scale.setScalar(0.99);
+  group.add(crease);
+
+  const flapOutline = new THREE.LineSegments(
+    new THREE.EdgesGeometry(flapGeometry),
+    new THREE.LineBasicMaterial({
+      color: "#d9cfc0",
+      transparent: true,
+      opacity: 0.55
+    })
+  );
+  flap.add(flapOutline);
+
+  if (index % 2 === 0) {
+    const thread = createEnvelopeThread(width);
+    thread.position.set(0, 0, depth / 2 + 0.025);
+    group.add(thread);
+  }
 
   return {
-    mesh,
+    data,
+    group,
+    body,
+    flap,
+    label,
     outline,
     crease,
-    basePosition,
-    phase: index * 0.78,
-    drift: 0.04 + (index % 3) * 0.01
+    basePosition: new THREE.Vector3(),
+    baseRotation: new THREE.Euler(),
+    hoverT: 0,
+    openT: 0
   };
 }
 
-function createEnvelope(photoUrl: string, index: number): EnvelopeRuntime {
+function createEnvelopeThread(width: number): THREE.Group {
+  const group = new THREE.Group();
+
+  const curve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-width * 0.22, -0.08, 0),
+    new THREE.Vector3(-width * 0.05, 0.04, 0.01),
+    new THREE.Vector3(width * 0.05, -0.05, 0.01),
+    new THREE.Vector3(width * 0.22, 0.06, 0)
+  ]);
+
+  const geometry = new THREE.TubeGeometry(curve, 24, 0.014, 6, false);
+  const mesh = new THREE.Mesh(geometry, threadMaterial);
+  group.add(mesh);
+
+  const bowGeometry = new THREE.TorusGeometry(0.055, 0.012, 6, 16, Math.PI * 1.6);
+  const bow = new THREE.Mesh(bowGeometry, threadMaterial);
+  bow.position.set(0, 0, 0.012);
+  bow.rotation.z = 0.4;
+  group.add(bow);
+
+  return group;
+}
+
+function createPhotoEnvelope(photoUrl: string, index: number): PhotoEnvelopeRuntime {
   const group = new THREE.Group();
   const baseAngle = index * (Math.PI / 2);
 
@@ -1050,9 +1121,9 @@ function createEnvelope(photoUrl: string, index: number): EnvelopeRuntime {
   const outline = new THREE.LineSegments(
     new THREE.EdgesGeometry(bodyGeometry),
     new THREE.LineBasicMaterial({
-      color: "#b88a64",
+      color: "#d9cfc0",
       transparent: true,
-      opacity: 0.7
+      opacity: 0.55
     })
   );
   group.add(outline);
@@ -1060,9 +1131,9 @@ function createEnvelope(photoUrl: string, index: number): EnvelopeRuntime {
   const crease = new THREE.LineSegments(
     new THREE.WireframeGeometry(bodyGeometry),
     new THREE.LineBasicMaterial({
-      color: "#a67c52",
+      color: "#cdc2b2",
       transparent: true,
-      opacity: 0.28
+      opacity: 0.18
     })
   );
   crease.scale.setScalar(0.99);
@@ -1071,9 +1142,9 @@ function createEnvelope(photoUrl: string, index: number): EnvelopeRuntime {
   const flapOutline = new THREE.LineSegments(
     new THREE.EdgesGeometry(flapGeometry),
     new THREE.LineBasicMaterial({
-      color: "#b88a64",
+      color: "#d9cfc0",
       transparent: true,
-      opacity: 0.7
+      opacity: 0.55
     })
   );
   flap.add(flapOutline);
@@ -1092,99 +1163,68 @@ function createEnvelope(photoUrl: string, index: number): EnvelopeRuntime {
   };
 }
 
-function generateEvenSphereNormals(count: number, offset: number): THREE.Vector3[] {
-  const vectors: THREE.Vector3[] = [];
-  const phi = Math.PI * (3 - Math.sqrt(5));
+function createPaperCrane(): THREE.Group {
+  const crane = new THREE.Group();
+  const mat = paperMaterial.clone();
+  mat.color = new THREE.Color("#faf8f4");
+  mat.roughness = 0.88;
 
-  for (let i = 0; i < count; i += 1) {
-    const y = 1 - (i / (count - 1)) * 2;
-    const radius = Math.sqrt(1 - y * y);
-    const theta = phi * i + offset;
-    const x = Math.cos(theta) * radius;
-    const z = Math.sin(theta) * radius;
-    vectors.push(new THREE.Vector3(x, y, z).normalize());
-  }
+  const bodyGeo = new THREE.ConeGeometry(0.35, 0.9, 4);
+  const body = new THREE.Mesh(bodyGeo, mat);
+  body.rotation.x = Math.PI / 2;
+  body.rotation.z = Math.PI / 4;
+  body.scale.set(1, 1, 0.45);
+  body.castShadow = true;
+  crane.add(body);
 
-  return vectors;
+  const wingShape = new THREE.Shape();
+  wingShape.moveTo(0, 0);
+  wingShape.lineTo(1.6, 0.15);
+  wingShape.lineTo(1.9, 0.55);
+  wingShape.lineTo(0.4, 0.45);
+  wingShape.lineTo(0, 0);
+  const wingGeo = new THREE.ShapeGeometry(wingShape);
+
+  const leftWing = new THREE.Mesh(wingGeo, mat);
+  leftWing.position.set(-0.05, 0.12, 0);
+  leftWing.rotation.x = -Math.PI / 2;
+  leftWing.rotation.z = -0.18;
+  leftWing.castShadow = true;
+  crane.add(leftWing);
+
+  const rightWing = new THREE.Mesh(wingGeo, mat);
+  rightWing.position.set(0.05, 0.12, 0);
+  rightWing.rotation.x = -Math.PI / 2;
+  rightWing.rotation.z = Math.PI + 0.18;
+  rightWing.castShadow = true;
+  crane.add(rightWing);
+
+  const neckGeo = new THREE.ConeGeometry(0.08, 0.7, 4);
+  const neck = new THREE.Mesh(neckGeo, mat);
+  neck.position.set(0, 0.45, 0.35);
+  neck.rotation.x = -0.6;
+  neck.castShadow = true;
+  crane.add(neck);
+
+  const headGeo = new THREE.ConeGeometry(0.09, 0.28, 4);
+  const head = new THREE.Mesh(headGeo, mat);
+  head.position.set(0, 0.72, 0.54);
+  head.rotation.x = -1.1;
+  head.castShadow = true;
+  crane.add(head);
+
+  const tailGeo = new THREE.ConeGeometry(0.12, 0.9, 4);
+  const tail = new THREE.Mesh(tailGeo, mat);
+  tail.position.set(0, -0.1, -0.55);
+  tail.rotation.x = 2.4;
+  tail.scale.set(1, 1, 0.35);
+  tail.castShadow = true;
+  crane.add(tail);
+
+  return crane;
 }
 
-function createOrigamiCrystalGeometry(radius: number, height: number): THREE.BufferGeometry {
-  const geometry = new THREE.BufferGeometry();
-  const r = radius;
-  const depth = height * 0.6;
-
-  const vertices = new Float32Array([
-    // Front face (two triangles) - carries the label
-    -r, -r, 0,   r, -r, 0,   r,  r, 0,
-    -r, -r, 0,   r,  r, 0,  -r,  r, 0,
-    // Side faces (front edge to apex)
-    -r, -r, 0,  -r,  r, 0,   0,  0, -depth,
-    -r,  r, 0,   r,  r, 0,   0,  0, -depth,
-     r,  r, 0,   r, -r, 0,   0,  0, -depth,
-     r, -r, 0,  -r, -r, 0,   0,  0, -depth
-  ]);
-
-  const uvs = new Float32Array([
-    // Front face UVs
-    0, 0,   1, 0,   1, 1,
-    0, 0,   1, 1,   0, 1,
-    // Side face UVs
-    0, 0,   1, 0,   0.5, 1,
-    0, 0,   1, 0,   0.5, 1,
-    0, 0,   1, 0,   0.5, 1,
-    0, 0,   1, 0,   0.5, 1
-  ]);
-
-  geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
-  geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
-  geometry.computeVertexNormals();
-
-  return geometry;
-}
-
-function createPanelGeometry(width: number, height: number, radius: number): THREE.ShapeGeometry {
-  const shape = new THREE.Shape();
-  shape.moveTo(-width / 2 + radius, height / 2);
-  shape.lineTo(width / 2 - radius, height / 2);
-  shape.quadraticCurveTo(width / 2, height / 2, width / 2, height / 2 - radius);
-  shape.lineTo(width / 2, -height / 2 + radius);
-  shape.quadraticCurveTo(width / 2, -height / 2, width / 2 - radius, -height / 2);
-  shape.lineTo(-width / 2 + radius, -height / 2);
-  shape.quadraticCurveTo(-width / 2, -height / 2, -width / 2, -height / 2 + radius);
-  shape.lineTo(-width / 2, height / 2 - radius);
-  shape.quadraticCurveTo(-width / 2, height / 2, -width / 2 + radius, height / 2);
-  return new THREE.ShapeGeometry(shape, 28);
-}
-
-function extractRoundedRectPoints(halfWidth: number, halfHeight: number, radius: number): THREE.Vector3[] {
-  const pts = [
-    [-halfWidth + radius, halfHeight],
-    [halfWidth - radius, halfHeight],
-    [halfWidth, halfHeight - radius],
-    [halfWidth, -halfHeight + radius],
-    [halfWidth - radius, -halfHeight],
-    [-halfWidth + radius, -halfHeight],
-    [-halfWidth, -halfHeight + radius],
-    [-halfWidth, halfHeight - radius]
-  ];
-  return pts.map(([x, y]) => new THREE.Vector3(x, y, 0.02));
-}
-
-function buildPaperMaterial(label: string): THREE.MeshStandardMaterial {
-  const texture = new THREE.CanvasTexture(createFaceLabelCanvas(label));
-  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  texture.colorSpace = THREE.SRGBColorSpace;
-
-  const material = paperMaterial.clone();
-  material.map = texture;
-  material.emissive = new THREE.Color("#c29672");
-  material.emissiveIntensity = 0.008;
-  material.transparent = true;
-  material.flatShading = true;
-  return material;
-}
-
-function createKraftPaperCanvas(): HTMLCanvasElement {
+function createPaperCanvas(): HTMLCanvasElement {
   const canvasElement = document.createElement("canvas");
   canvasElement.width = 1024;
   canvasElement.height = 1024;
@@ -1194,35 +1234,31 @@ function createKraftPaperCanvas(): HTMLCanvasElement {
     return canvasElement;
   }
 
-  const gradient = context.createLinearGradient(0, 0, 1024, 1024);
-  gradient.addColorStop(0, "#d7b089");
-  gradient.addColorStop(0.5, "#c79d73");
-  gradient.addColorStop(1, "#b98963");
-  context.fillStyle = gradient;
+  context.fillStyle = "#faf8f4";
   context.fillRect(0, 0, 1024, 1024);
 
-  for (let index = 0; index < 2400; index += 1) {
+  for (let index = 0; index < 1800; index += 1) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
-    const width = 6 + Math.random() * 22;
-    const height = 0.5 + Math.random() * 1.4;
-    const alpha = 0.018 + Math.random() * 0.05;
+    const width = 4 + Math.random() * 18;
+    const height = 0.4 + Math.random() * 1.1;
+    const alpha = 0.012 + Math.random() * 0.035;
     context.save();
     context.translate(x, y);
     context.rotate((Math.random() - 0.5) * 0.9);
-    context.fillStyle = `rgba(92, 58, 34, ${alpha})`;
+    context.fillStyle = `rgba(120, 105, 88, ${alpha})`;
     context.fillRect(-width / 2, -height / 2, width, height);
     context.restore();
   }
 
-  for (let index = 0; index < 260; index += 1) {
+  for (let index = 0; index < 160; index += 1) {
     const startX = Math.random() * 1024;
     const startY = Math.random() * 1024;
-    const length = 28 + Math.random() * 92;
-    const bend = (Math.random() - 0.5) * 26;
-    const alpha = 0.014 + Math.random() * 0.026;
-    context.strokeStyle = `rgba(72, 46, 26, ${alpha})`;
-    context.lineWidth = 0.7 + Math.random() * 1.3;
+    const length = 24 + Math.random() * 80;
+    const bend = (Math.random() - 0.5) * 22;
+    const alpha = 0.01 + Math.random() * 0.022;
+    context.strokeStyle = `rgba(100, 88, 74, ${alpha})`;
+    context.lineWidth = 0.6 + Math.random() * 1.1;
     context.beginPath();
     context.moveTo(startX, startY);
     context.quadraticCurveTo(
@@ -1234,27 +1270,21 @@ function createKraftPaperCanvas(): HTMLCanvasElement {
     context.stroke();
   }
 
-  for (let index = 0; index < 1100; index += 1) {
+  for (let index = 0; index < 800; index += 1) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
-    const radius = 0.8 + Math.random() * 2.4;
-    const alpha = 0.02 + Math.random() * 0.04;
-    context.fillStyle = `rgba(255, 244, 225, ${alpha})`;
+    const radius = 0.6 + Math.random() * 2;
+    const alpha = 0.015 + Math.random() * 0.03;
+    context.fillStyle = `rgba(255, 255, 255, ${alpha})`;
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
     context.fill();
   }
 
-  const edgeShade = context.createRadialGradient(512, 512, 220, 512, 512, 680);
-  edgeShade.addColorStop(0, "rgba(255,255,255,0)");
-  edgeShade.addColorStop(1, "rgba(92,58,34,0.24)");
-  context.fillStyle = edgeShade;
-  context.fillRect(0, 0, 1024, 1024);
-
   return canvasElement;
 }
 
-function createPaperReliefCanvas(): HTMLCanvasElement {
+function createPaperBumpCanvas(): HTMLCanvasElement {
   const canvasElement = document.createElement("canvas");
   canvasElement.width = 1024;
   canvasElement.height = 1024;
@@ -1267,238 +1297,48 @@ function createPaperReliefCanvas(): HTMLCanvasElement {
   context.fillStyle = "rgb(128,128,128)";
   context.fillRect(0, 0, 1024, 1024);
 
-  const gradient = context.createLinearGradient(0, 0, 1024, 1024);
-  gradient.addColorStop(0, "rgb(148,148,148)");
-  gradient.addColorStop(1, "rgb(108,108,108)");
-  context.strokeStyle = gradient;
-  context.lineWidth = 4;
-
-  const wrinkleLines = [
-    [120, 180, 840, 760],
-    [180, 820, 920, 220],
-    [90, 470, 980, 610],
-    [310, 70, 520, 970],
-    [680, 90, 350, 980]
-  ];
-
-  wrinkleLines.forEach(([x1, y1, x2, y2], index) => {
-    context.beginPath();
-    context.moveTo(x1, y1);
-    context.quadraticCurveTo(
-      (x1 + x2) / 2 + (index % 2 === 0 ? 60 : -70),
-      (y1 + y2) / 2 + (index % 2 === 0 ? -35 : 55),
-      x2,
-      y2
-    );
-    context.stroke();
-  });
-
-  context.strokeStyle = "rgba(88,88,88,0.28)";
-  context.lineWidth = 1.2;
-  for (let index = 0; index < 22; index += 1) {
-    const x = 60 + Math.random() * 900;
-    const y = 60 + Math.random() * 900;
-    const length = 120 + Math.random() * 240;
-    const bend = (Math.random() - 0.5) * 90;
-    context.beginPath();
-    context.moveTo(x, y);
-    context.quadraticCurveTo(x + length * 0.5, y + bend, x + length, y + bend * 0.45);
-    context.stroke();
-  }
-
-  for (let index = 0; index < 3200; index += 1) {
+  for (let index = 0; index < 2800; index += 1) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
-    const alpha = 0.012 + Math.random() * 0.03;
-    const shade = 112 + Math.floor(Math.random() * 40);
+    const alpha = 0.008 + Math.random() * 0.024;
+    const shade = 118 + Math.floor(Math.random() * 36);
     context.fillStyle = `rgba(${shade},${shade},${shade},${alpha})`;
     context.fillRect(x, y, 1.5 + Math.random() * 2.5, 1.5 + Math.random() * 2.5);
   }
 
-  for (let index = 0; index < 120; index += 1) {
+  for (let index = 0; index < 80; index += 1) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
-    const width = 40 + Math.random() * 120;
-    const alpha = 0.015 + Math.random() * 0.03;
+    const width = 30 + Math.random() * 100;
+    const alpha = 0.012 + Math.random() * 0.024;
     context.save();
     context.translate(x, y);
     context.rotate((Math.random() - 0.5) * 1.2);
     context.fillStyle = `rgba(255,255,255,${alpha})`;
-    context.fillRect(-width / 2, -1.2, width, 2.4);
+    context.fillRect(-width / 2, -1, width, 2);
     context.restore();
   }
 
   return canvasElement;
 }
 
-function createFaceLabelCanvas(label: string): HTMLCanvasElement {
+function createEnvelopeLabelCanvas(label: string): HTMLCanvasElement {
   const canvasElement = document.createElement("canvas");
   canvasElement.width = 512;
-  canvasElement.height = 512;
+  canvasElement.height = 256;
   const context = canvasElement.getContext("2d");
 
   if (!context) {
     return canvasElement;
   }
 
-  const baseTexture = createKraftPaperCanvas();
-  context.drawImage(baseTexture, 0, 0, 512, 512);
+  context.clearRect(0, 0, 512, 256);
 
-  const veil = context.createLinearGradient(0, 0, 512, 512);
-  veil.addColorStop(0, "rgba(255,250,239,0.1)");
-  veil.addColorStop(1, "rgba(91,62,38,0.08)");
-  context.fillStyle = veil;
-  context.fillRect(0, 0, 512, 512);
-
-  context.strokeStyle = "rgba(111,74,45,0.34)";
-  context.lineWidth = 3;
-  context.beginPath();
-  context.moveTo(110, 160);
-  context.lineTo(402, 352);
-  context.stroke();
-
-  context.font = "500 28px STSong, 'Songti SC', 'SimSun', serif";
-  context.fillStyle = "#6d4a2f";
+  context.font = "600 52px STSong, 'Songti SC', 'SimSun', 'Noto Serif SC', serif";
+  context.fillStyle = "#6b5a48";
   context.textAlign = "center";
-  context.fillText("Selena Yuan", 256, 190);
-
-  context.font = "600 54px STSong, 'Songti SC', 'SimSun', serif";
-  context.fillStyle = "#402b1a";
-  context.fillText(label, 256, 278);
-
-  context.font = "400 18px 'Snell Roundhand', 'Apple Chancery', cursive";
-  context.fillStyle = "#8d6443";
-  context.fillText("CLICK TO UNFOLD", 256, 336);
+  context.textBaseline = "middle";
+  context.fillText(label, 256, 128);
 
   return canvasElement;
-}
-
-function updatePointer(clientX: number, clientY: number): void {
-  pointer.x = (clientX / window.innerWidth) * 2 - 1;
-  pointer.y = -(clientY / window.innerHeight) * 2 + 1;
-}
-
-function pickFace(): THREE.Object3D | null {
-  raycaster.setFromCamera(pointer, camera);
-  const intersections = raycaster.intersectObjects(clickableMeshes, false);
-  return intersections[0]?.object ?? null;
-}
-
-function pickEnvelope(): THREE.Object3D | null {
-  raycaster.setFromCamera(pointer, camera);
-  const intersections = raycaster.intersectObjects(envelopeClickables, false);
-  const hit = intersections[0]?.object ?? null;
-
-  if (hit) {
-    hoveredEnvelopeIndex = hit.userData.envelopeIndex as number;
-  } else {
-    hoveredEnvelopeIndex = null;
-  }
-
-  return hit;
-}
-
-function setActiveFace(id: string | null): void {
-  activeId = id;
-
-  faceFrames.forEach((runtime) => {
-    const isActive = runtime.data.id === id;
-    const positionTarget = isActive
-      ? runtime.basePosition.clone().add(runtime.normal.clone().multiplyScalar(0.32))
-      : runtime.basePosition;
-
-    gsap.to(runtime.pivot.position, {
-      x: positionTarget.x,
-      y: positionTarget.y,
-      z: positionTarget.z,
-      duration: 0.6,
-      ease: "power2.inOut"
-    });
-
-    gsap.to(runtime.panelHinge.rotation, {
-      x: isActive ? -0.14 : -Math.PI * 0.98,
-      z: isActive ? runtime.data.angle * 0.08 : runtime.data.angle * 0.18,
-      duration: 0.6,
-      ease: "power2.inOut"
-    });
-
-    gsap.to(runtime.panelMesh.material as THREE.MeshStandardMaterial, {
-      opacity: isActive ? 1 : 0.94,
-      duration: 0.4,
-      ease: "sine.out"
-    });
-
-    gsap.to(runtime.faceMesh.material as THREE.MeshStandardMaterial, {
-      emissiveIntensity: isActive ? 0.14 : 0.06,
-      duration: 0.45,
-      ease: "sine.out"
-    });
-  });
-
-  const content = faceFrames.find((runtime) => runtime.data.id === id)?.data ?? null;
-
-  if (!content) {
-    activeCard.classList.remove("visible");
-    activeCard.innerHTML = "";
-    return;
-  }
-
-  activeCard.innerHTML = `
-    <div class="card-shell">
-      <p class="card-eyebrow">${content.eyebrow}</p>
-      <h3>${content.title}</h3>
-      <p class="card-subtitle type-target">${content.subtitle}</p>
-      <div class="card-body">${content.html}</div>
-    </div>
-  `;
-
-  activeCard.classList.add("visible");
-
-  activeCard.querySelectorAll<HTMLElement>(".panel-block, .panel-grid, .tag-row, .stats-row, .timeline, .panel-list").forEach((item, index) => {
-    item.style.animationDelay = `${index * 80}ms`;
-  });
-
-  runTypewriterAnimation();
-}
-
-function positionCard(): void {
-  if (!activeCard.classList.contains("visible")) {
-    return;
-  }
-
-  activeCard.style.setProperty("--card-scale", "1");
-}
-
-function runTypewriterAnimation(): void {
-  const textTargets = activeCard.querySelectorAll<HTMLElement>(".type-target, .panel-quote, .panel-text, .panel-list p");
-
-  textTargets.forEach((element, index) => {
-    if (element.querySelector("*")) {
-      return;
-    }
-
-    const fullText = element.textContent?.replace(/\s+/g, " ").trim();
-
-    if (!fullText) {
-      return;
-    }
-
-    element.classList.add("is-typing");
-    element.textContent = "";
-
-    const state = { count: 0 };
-    gsap.to(state, {
-      count: fullText.length,
-      duration: Math.min(2.8, Math.max(0.9, fullText.length * 0.045)),
-      delay: 0.12 + index * 0.12,
-      ease: "none",
-      snap: "count",
-      onUpdate: () => {
-        element.textContent = fullText.slice(0, state.count);
-      },
-      onComplete: () => {
-        element.classList.remove("is-typing");
-      }
-    });
-  });
 }

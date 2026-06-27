@@ -6,6 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 type FaceData = {
   id: string;
+  parentId?: string;
   eyebrow: string;
   title: string;
   shortLabel: string;
@@ -13,6 +14,7 @@ type FaceData = {
   angle: number;
   accent: string;
   html: string;
+  subEnvelopes?: FaceData[];
 };
 
 type InfoEnvelopeRuntime = {
@@ -85,11 +87,12 @@ app.innerHTML = `
 `;
 
 const PHOTO_URLS = [
-  "/photos/photo1.jpg",
-  "/photos/photo2.jpg",
-  "/photos/photo3.jpg",
-  "/photos/photo4.jpg"
+  "photos/photo1.jpg",
+  "photos/photo2.jpg",
+  "photos/photo3.jpg",
+  "photos/photo4.jpg"
 ];
+const canLoadPhotoTextures = window.location.protocol !== "file:";
 
 const faces: FaceData[] = [
   {
@@ -97,178 +100,397 @@ const faces: FaceData[] = [
     eyebrow: "Envelope 01",
     title: "关于我",
     shortLabel: "关于我",
-    subtitle: "一个热爱尝试、永远好奇的 ENFP 女孩",
+    subtitle: "Personal Background",
     angle: 0,
     accent: "#c9a88c",
     html: `
       <section class="panel-block">
         <p class="panel-kicker">Personal Background</p>
         <h2>Selena Yuan</h2>
-        <p class="panel-quote">一个热爱尝试、永远好奇的 ENFP 女孩。</p>
-      </section>
-      <section class="panel-grid">
-        <div><span>生日</span><strong>2006.01.11 · 20岁</strong></div>
-        <div><span>MBTI</span><strong>ENFP 竞选者</strong></div>
-        <div><span>家庭</span><strong>爸爸妈妈 + 妹妹</strong></div>
-        <div><span>学校</span><strong>深圳大学</strong></div>
+        <p class="panel-text">Selena Yuan，2006年1月11日出生在深圳。在一个温暖的四口之家长大，爸爸、妈妈和妹妹是她最亲近的人。</p>
+        <p class="panel-translation">Selena Yuan was born in Shenzhen on January 11, 2006. She grew up in a warm family of four, with her parents and younger sister as the people closest to her heart.</p>
       </section>
       <section class="panel-block">
-        <p class="panel-mini-title">专业</p>
-        <p class="panel-text">
-          网络与新媒体，主修智能体产品设计、人机传播导论、媒体与社会、
-          AIGC 与文本计算、大语言模型与 AI 内容生成、新媒体用户研究。
-        </p>
+        <p class="panel-text">目前就读于深圳大学，网络与新媒体专业。主修课程包括传播学理论、媒体与社会、管理学基础、导演基础、新媒体概论。大学期间GPA为3.6。</p>
+        <p class="panel-translation">She is currently studying Network and New Media at Shenzhen University. Her major courses include Communication Theory, Media and Society, Fundamentals of Management, Directing, and Introduction to New Media. Her university GPA is 3.6.</p>
+      </section>
+      <section class="panel-block">
+        <p class="panel-quote">我是一个天生好奇的人，一直相信世界有无数种可能等待被打开。</p>
+        <p class="panel-translation">I am naturally curious, and I have always believed that the world holds countless possibilities waiting to be opened.</p>
       </section>
     `
   },
   {
-    id: "traits",
+    id: "self",
     eyebrow: "Envelope 02",
-    title: "性格与热爱",
-    shortLabel: "热爱",
-    subtitle: "擅长连接人、内容和新工具的表达者",
+    title: "性格与自我",
+    shortLabel: "性格",
+    subtitle: "Personality and Self",
     angle: 0,
     accent: "#d7b79f",
-    html: `
-      <section class="panel-block">
-        <p class="panel-kicker">Traits & Strengths</p>
-        <h2>热情外向，强共情，网感在线</h2>
-        <p class="panel-text">
-          ENFP 气质让我天然喜欢沟通、共情与探索，也让我持续关注
-          社媒趋势、用户情绪和内容表达方式。
-        </p>
-      </section>
-      <section class="tag-row">
-        <span>旅游</span><span>摄影</span><span>阅读</span><span>写作</span><span>攀岩 Soon</span>
-      </section>
-      <section class="stats-row">
-        <div><strong>1w+</strong><span>小红书单篇浏览</span></div>
-        <div><strong>600+</strong><span>小红书点赞</span></div>
-        <div><strong>24/7</strong><span>海外社媒冲浪</span></div>
-      </section>
-      <section class="panel-block">
-        <p class="panel-mini-title">技能栈</p>
-        <p class="panel-text">Photoshop / 剪映 / Canva / WPS / Codex / Claude / Vibe Coding</p>
-      </section>
-      <section class="panel-block">
-        <p class="panel-mini-title">个人项目</p>
-        <p class="panel-link"><a href="https://github.com/uan-iel/wechat-moments-ai" target="_blank" rel="noreferrer">朋友圈及小红书运营工具</a></p>
-        <p class="panel-link"><a href="https://github.com/uan-iel/obsidian-museum-desk" target="_blank" rel="noreferrer">Obsidian 仪表盘插件</a></p>
-      </section>
-    `
+    html: "",
+    subEnvelopes: [
+      {
+        id: "self-mbti",
+        parentId: "self",
+        eyebrow: "Sub Envelope 01",
+        title: "性格与MBTI",
+        shortLabel: "MBTI",
+        subtitle: "Personality and MBTI",
+        angle: 0,
+        accent: "#d7b79f",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">Personality and MBTI</p>
+            <h2>ENFP</h2>
+            <p class="panel-text">ENFP。热情、外向、充满好奇心。擅长与人沟通，享受连接人与人的过程。共情能力强，总能理解不同人的立场和情绪。</p>
+            <p class="panel-translation">ENFP. Warm, outgoing, and full of curiosity. She is good at communicating with people and enjoys the process of connecting them. With strong empathy, she can understand different perspectives and emotions.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-quote">一个永远在尝试新事物的人，不怕试错，只怕原地不动。</p>
+            <p class="panel-translation">A person who is always trying new things, unafraid of trial and error, and more afraid of standing still.</p>
+          </section>
+        `
+      },
+      {
+        id: "self-hobbies",
+        parentId: "self",
+        eyebrow: "Sub Envelope 02",
+        title: "我的爱好",
+        shortLabel: "爱好",
+        subtitle: "Hobbies",
+        angle: 0,
+        accent: "#d7b79f",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">Hobbies</p>
+            <h2>旅游 · 摄影 · 阅读 · 写作 · 攀岩</h2>
+            <p class="panel-text">目前持续在做的：旅游 · 摄影 · 阅读 · 写作。最近刚刚开始尝试：攀岩。</p>
+            <p class="panel-translation">Her ongoing hobbies include travel, photography, reading, and writing. Recently, she has just started trying rock climbing.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">旅游的时候喜欢用照片记录每个地方的细节，写作的时候喜欢把感受变成文字。阅读偏好非虚构和人物故事。攀岩是想挑战身体和心智的平衡，刚刚开始学。</p>
+            <p class="panel-translation">When traveling, she likes using photos to capture the details of each place. When writing, she turns feelings into words. She prefers nonfiction and human stories. Rock climbing is her new way to challenge the balance between body and mind.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-quote">每一段旅程、每一本书、每一次攀爬，都在悄悄塑造我。</p>
+            <p class="panel-translation">Every journey, every book, and every climb is quietly shaping who I am.</p>
+          </section>
+        `
+      },
+      {
+        id: "self-skills",
+        parentId: "self",
+        eyebrow: "Sub Envelope 03",
+        title: "技能与个人项目",
+        shortLabel: "技能",
+        subtitle: "Skills and Personal Projects",
+        angle: 0,
+        accent: "#d7b79f",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">Skills and Projects</p>
+            <h2>内容感知与工具实践</h2>
+            <p class="panel-text">软件技能：Photoshop · 剪映 · Canva · WPS。</p>
+            <p class="panel-translation">Software skills: Photoshop, Jianying, Canva, and WPS.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">网感强，高强度冲浪海外社媒：Instagram · YouTube · TikTok · Reddit。了解不同平台的调性和内容逻辑。</p>
+            <p class="panel-translation">She has a strong sense of online culture and actively follows overseas social media platforms including Instagram, YouTube, TikTok, and Reddit. She understands the tone and content logic of different platforms.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">小红书单篇帖子曾获得1w+浏览、600+点赞。</p>
+            <p class="panel-translation">One of her Xiaohongshu posts received over 10,000 views and more than 600 likes.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">擅长用Agent工具进行Vibe Coding，包括Codex、Claude等。有两个个人项目：</p>
+            <p class="panel-translation">She is skilled at using agent tools for vibe coding, including Codex and Claude. She has two personal projects:</p>
+            <p class="panel-link"><a href="https://github.com/uan-iel/wechat-moments-ai" target="_blank" rel="noreferrer">朋友圈及小红书运营工具</a></p>
+            <p class="panel-link"><a href="https://github.com/uan-iel/obsidian-museum-desk" target="_blank" rel="noreferrer">Obsidian仪表盘插件</a></p>
+          </section>
+        `
+      }
+    ]
   },
   {
-    id: "journey",
+    id: "internships",
     eyebrow: "Envelope 03",
-    title: "实践轨迹",
-    shortLabel: "实践",
-    subtitle: "在内容、社群、采访与协同中积累真实能力",
+    title: "实习足迹",
+    shortLabel: "实习",
+    subtitle: "Internship Footprints",
     angle: 0,
     accent: "#c59a78",
-    html: `
-      <section class="panel-block">
-        <p class="panel-kicker">Internships & Activities</p>
-        <h2>一边做内容，一边做组织者</h2>
-      </section>
-      <section class="timeline">
-        <article>
-          <p class="timeline-date">2025.11 - 2026.01 · Leyadoll</p>
-          <p>独立站运营，社媒视频/海报浏览量 <strong>3w+</strong>，完成 <strong>30+</strong> 竞品调研。</p>
-        </article>
-        <article>
-          <p class="timeline-date">2024.07 - 2024.08 · 南方都市报</p>
-          <p>新媒体运营 & 实习记者，采编稿件浏览量 <strong>1w+</strong>，完成全英文远程深度采访。</p>
-        </article>
-        <article>
-          <p class="timeline-date">2025.01 - 2025.02 · 海南省广播电视台</p>
-          <p>实习记者，跨方协同准时率 <strong>100%</strong>，保障 <strong>20+</strong> 条视频成片通过率 <strong>100%</strong>。</p>
-        </article>
-        <article>
-          <p class="timeline-date">2024.09 - 2024.12 · 莓辣</p>
-          <p>社群运营 & 小红书运营，管理 <strong>100+</strong> 社群，内容商品点击率 <strong>12%</strong>，阅读下单率 <strong>2%</strong>。</p>
-        </article>
-      </section>
-      <section class="stats-row compact">
-        <div><strong>60+</strong><span>AI 研究被试招募</span></div>
-        <div><strong>100+</strong><span>AI 使用日志</span></div>
-        <div><strong>200+</strong><span>系庆互动参与</span></div>
-      </section>
-    `
+    html: "",
+    subEnvelopes: [
+      {
+        id: "intern-leyadoll",
+        parentId: "internships",
+        eyebrow: "Sub Envelope 01",
+        title: "Leyadoll · 独立站运营",
+        shortLabel: "Leyadoll",
+        subtitle: "Independent Site Operations",
+        angle: 0,
+        accent: "#c59a78",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">2025年11月 - 2026年1月</p>
+            <h2>Leyadoll · 独立站运营</h2>
+            <p class="panel-text">负责海外社媒视频与海报的独立制作。通过创意设计提升内容吸引力，实现浏览量超过3w，购买转化效果显著。优化视频及海报内容后精准触达目标受众，购买转化率显著增长，成绩超出预期目标。</p>
+            <p class="panel-translation">She independently produced overseas social media videos and posters. Through creative design, she increased content appeal, achieved over 30,000 views, and significantly improved purchase conversion beyond expectations.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">独立完成30+本土竞品营销策略深度调研，涵盖邮件营销、社媒运营、促销节点等多方面，全面掌握海外运营风格。将调研结果运用到自身产品素材制作中，精准调整素材风格与文案撰写，提升产品市场竞争力。</p>
+            <p class="panel-translation">She completed more than 30 in-depth local competitor marketing studies covering email marketing, social media operations, and promotional timing. She applied the insights to product materials, refining visual style and copy to strengthen market competitiveness.</p>
+          </section>
+        `
+      },
+      {
+        id: "intern-nandu",
+        parentId: "internships",
+        eyebrow: "Sub Envelope 02",
+        title: "南方都市报 · 新媒体运营&实习记者",
+        shortLabel: "南都",
+        subtitle: "New Media Operations and Intern Reporter",
+        angle: 0,
+        accent: "#c59a78",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">2024年7月 - 2024年8月</p>
+            <h2>南方都市报 · 新媒体运营&实习记者</h2>
+            <p class="panel-text">负责新闻发布会及采访素材的精准切片与深度剪辑。通过提炼事件核心信息、强化关键观点，增强新闻内容的传播吸引力。</p>
+            <p class="panel-translation">She handled precise clipping and in-depth editing of press conference and interview materials, extracting core information and strengthening key viewpoints to improve the communicative appeal of news content.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">持续追踪国际校园新闻动态，独立开展全英文远程深度采访，完成多份高质量新闻稿件撰写。其中一篇稿件浏览量达1w+，扩大了媒体在国际校园领域的内容影响力。</p>
+            <p class="panel-translation">She continuously tracked international campus news, independently conducted in-depth remote interviews in English, and wrote multiple high-quality news articles. One article reached over 10,000 views, expanding the outlet's influence in international campus coverage.</p>
+          </section>
+        `
+      },
+      {
+        id: "intern-hainan",
+        parentId: "internships",
+        eyebrow: "Sub Envelope 03",
+        title: "海南省广播电视台 · 实习记者",
+        shortLabel: "海南台",
+        subtitle: "Intern Reporter",
+        angle: 0,
+        accent: "#c59a78",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">2025年1月 - 2025年2月</p>
+            <h2>海南省广播电视台 · 实习记者</h2>
+            <p class="panel-text">参与多次采编项目，牵头主持人与被采访方的全流程对接。建立需求同步机制与时间节点管控表，提前化解信息偏差、行程冲突等问题，保障项目启动准时率100%。</p>
+            <p class="panel-translation">She participated in multiple reporting and editing projects, leading full-process coordination between hosts and interviewees. By building demand synchronization and timeline tracking, she prevented information gaps and scheduling conflicts, ensuring a 100% on-time project launch rate.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">协助拍摄团队完成设备调试、场景布置、流程衔接等工作，及时协调突发需求。全程跟进成片剪辑环节，参与素材筛选、叙事逻辑梳理、字幕校对，累计保障20+条视频精准传达核心信息，成片通过率100%。</p>
+            <p class="panel-translation">She supported filming teams with equipment setup, scene arrangement, and workflow coordination. She followed post-production throughout, helping with material selection, narrative structure, and subtitle proofreading, ensuring more than 20 videos communicated key messages accurately with a 100% approval rate.</p>
+          </section>
+        `
+      },
+      {
+        id: "intern-meila",
+        parentId: "internships",
+        eyebrow: "Sub Envelope 04",
+        title: "莓辣 · 社群运营&小红书运营",
+        shortLabel: "莓辣",
+        subtitle: "Community and Xiaohongshu Operations",
+        angle: 0,
+        accent: "#c59a78",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">2024年9月 - 2024年12月</p>
+            <h2>莓辣 · 社群运营&小红书运营</h2>
+            <p class="panel-text">管理100+社群，负责社群日常维护、内容发布与用户互动。撰写小红书内容，商品点击率达12%，阅读下单率2%。</p>
+            <p class="panel-translation">She managed over 100 communities, handling daily maintenance, content publishing, and user interaction. She also wrote Xiaohongshu content, achieving a 12% product click-through rate and a 2% read-to-order conversion rate.</p>
+          </section>
+        `
+      }
+    ]
+  },
+  {
+    id: "activities",
+    eyebrow: "Envelope 04",
+    title: "组织与活动",
+    shortLabel: "活动",
+    subtitle: "Organizations and Activities",
+    angle: 0,
+    accent: "#b78a68",
+    html: "",
+    subEnvelopes: [
+      {
+        id: "activity-ai-study",
+        parentId: "activities",
+        eyebrow: "Sub Envelope 01",
+        title: "X世代AI使用研究",
+        shortLabel: "AI研究",
+        subtitle: "Gen X AI Usage Research",
+        angle: 0,
+        accent: "#b78a68",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">2025年9月 - 2025年12月</p>
+            <h2>X世代AI使用研究</h2>
+            <p class="panel-text">设计制作高吸引力被试招募海报，成功招募60余位中老年人被试，组织一对一的深入沟通及线上会议。</p>
+            <p class="panel-translation">She designed engaging recruitment posters and successfully recruited more than 60 middle-aged and older participants, organizing one-on-one in-depth communication and online meetings.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">长期跟进被试状态：收集百余份AI使用日志，系统整合数据，为研究提供详实基础资料。对每位被试开展深度访谈，挖掘需求痛点。进行为期两个月的日志社群维护，发布60+条文案，与被试积极互动，获得良好反馈。</p>
+            <p class="panel-translation">She followed participants over time, collected more than 100 AI usage logs, organized data systematically, and conducted in-depth interviews to uncover needs and pain points. During two months of community maintenance, she published over 60 posts and received positive feedback through active interaction.</p>
+          </section>
+        `
+      },
+      {
+        id: "activity-welcome-gala",
+        parentId: "activities",
+        eyebrow: "Sub Envelope 02",
+        title: "传播学院迎新晚会",
+        shortLabel: "迎新",
+        subtitle: "School of Communication Welcome Gala",
+        angle: 0,
+        accent: "#b78a68",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">2024年10月 - 2024年11月</p>
+            <h2>传播学院迎新晚会</h2>
+            <p class="panel-text">前期宣传片拍摄执行制片：负责与导演沟通，把握取景内容需求，搜索并筛选合适的拍摄场地。积极参与场地布置工作，优化拍摄环境。现场拍摄过程中全面记录重要细节，协助团队高效推进拍摄进度。</p>
+            <p class="panel-translation">As executive producer for the promotional video, she communicated with the director, clarified location needs, searched for suitable filming sites, helped arrange scenes, and documented key details on set to keep filming moving efficiently.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">前期统筹：从零开始推进迎新晚会筹备工作，联系3家赞助商、对接10+表演团队、拍摄完整采访视频、安排现场人员。</p>
+            <p class="panel-translation">In early coordination, she helped build the gala from scratch by contacting three sponsors, coordinating with over ten performance teams, filming a complete interview video, and arranging on-site staff.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">现场执行：协调各表演社团，全程跟进晚会动态，确保每个节目有序进行。</p>
+            <p class="panel-translation">During the event, she coordinated performing groups and followed the live flow to ensure each program ran smoothly.</p>
+          </section>
+        `
+      },
+      {
+        id: "activity-anniversary",
+        parentId: "activities",
+        eyebrow: "Sub Envelope 03",
+        title: "网络与新媒体系庆",
+        shortLabel: "系庆",
+        subtitle: "Network and New Media Anniversary",
+        angle: 0,
+        accent: "#b78a68",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">2025年11月 - 2025年12月</p>
+            <h2>网络与新媒体系庆</h2>
+            <p class="panel-text">搭建交流平台，收集同学与校友问答，获得50+份问题、600+份答案。运用分类法筛选整合，最终产出20组优质问答内容。</p>
+            <p class="panel-translation">She built a communication platform for students and alumni, collecting over 50 questions and more than 600 answers. Through classification and curation, she produced 20 sets of high-quality Q&A content.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">布置创意互动摊位：制作精美海报吸引观展人目光。设计融入知识元素的趣味互动游戏，吸引超200名观展人主动参与互动。</p>
+            <p class="panel-translation">She designed a creative interactive booth with polished posters and knowledge-based games, attracting more than 200 visitors to participate actively.</p>
+          </section>
+        `
+      }
+    ]
+  },
+  {
+    id: "highlights",
+    eyebrow: "Envelope 05",
+    title: "高光集锦",
+    shortLabel: "高光",
+    subtitle: "Highlights",
+    angle: 0,
+    accent: "#d4a574",
+    html: "",
+    subEnvelopes: [
+      {
+        id: "highlight-social",
+        parentId: "highlights",
+        eyebrow: "Sub Envelope 01",
+        title: "社媒影响力",
+        shortLabel: "社媒",
+        subtitle: "Social Media Influence",
+        angle: 0,
+        accent: "#d4a574",
+        html: `
+          <section class="stats-row compact">
+            <div><strong>1w+</strong><span>小红书单篇帖子浏览</span><em>Views on a single Xiaohongshu post</em></div>
+            <div><strong>600+</strong><span>小红书单篇点赞</span><em>Likes on a single Xiaohongshu post</em></div>
+            <div><strong>3w+</strong><span>Leyadoll海外社媒浏览</span><em>Overseas social media views for Leyadoll</em></div>
+            <div><strong>12%</strong><span>小红书商品点击率</span><em>Xiaohongshu product click-through rate</em></div>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">南方都市报采编稿件浏览量1w+，小红书阅读下单率2%。</p>
+            <p class="panel-translation">A Southern Metropolis Daily article she worked on reached over 10,000 views, and Xiaohongshu content achieved a 2% read-to-order conversion rate.</p>
+          </section>
+        `
+      },
+      {
+        id: "highlight-management",
+        parentId: "highlights",
+        eyebrow: "Sub Envelope 02",
+        title: "项目管理与组织",
+        shortLabel: "组织",
+        subtitle: "Project Management and Organization",
+        angle: 0,
+        accent: "#d4a574",
+        html: `
+          <section class="panel-block">
+            <p class="panel-text">X世代研究招募60+被试，收集100+份日志，发布60+条社群文案。</p>
+            <p class="panel-translation">For the Gen X research project, she recruited over 60 participants, collected more than 100 logs, and published over 60 community posts.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">传播学院迎新晚会联系3家赞助商，对接10+表演团队。</p>
+            <p class="panel-translation">For the School of Communication Welcome Gala, she contacted three sponsors and coordinated with more than ten performance teams.</p>
+          </section>
+          <section class="panel-block">
+            <p class="panel-text">系庆活动收集50+问题600+答案，筛选20组优质问答，吸引200+人参与互动。海南台保障20+条视频成片通过率100%。</p>
+            <p class="panel-translation">For the anniversary event, she collected over 50 questions and 600 answers, curated 20 high-quality Q&A sets, and attracted more than 200 participants. At Hainan Broadcasting, she helped ensure a 100% approval rate for over 20 videos.</p>
+          </section>
+        `
+      },
+      {
+        id: "highlight-projects",
+        parentId: "highlights",
+        eyebrow: "Sub Envelope 03",
+        title: "个人项目",
+        shortLabel: "项目",
+        subtitle: "Personal Projects",
+        angle: 0,
+        accent: "#d4a574",
+        html: `
+          <section class="panel-block">
+            <p class="panel-kicker">Personal Projects</p>
+            <h2>用工具把灵感落地</h2>
+            <p class="panel-translation">Turning ideas into practical tools through hands-on building.</p>
+            <p class="panel-link"><a href="https://github.com/uan-iel/wechat-moments-ai" target="_blank" rel="noreferrer">朋友圈及小红书运营工具</a></p>
+            <p class="panel-translation">A tool for WeChat Moments and Xiaohongshu content operations.</p>
+            <p class="panel-link"><a href="https://github.com/uan-iel/obsidian-museum-desk" target="_blank" rel="noreferrer">Obsidian仪表盘插件</a></p>
+            <p class="panel-translation">An Obsidian dashboard plugin for personal knowledge display.</p>
+          </section>
+        `
+      }
+    ]
   },
   {
     id: "future",
-    eyebrow: "Envelope 04",
+    eyebrow: "Envelope 06",
     title: "未来方向",
     shortLabel: "未来",
-    subtitle: "成为懂用户、懂技术、懂商业的产品人",
-    angle: 0,
-    accent: "#b78a68",
-    html: `
-      <section class="panel-block">
-        <p class="panel-kicker">Future Direction</p>
-        <h2>实体产品经理 / 互联网产品经理</h2>
-        <p class="panel-text">
-          正在系统学习产品方法论、用户研究、数据分析，并持续关注行业动态与 AI 产品趋势。
-        </p>
-      </section>
-      <section class="panel-list">
-        <p>从 0 到 1 搭建产品，定义需求与 MVP</p>
-        <p>用户洞察与行为分析，用数据驱动决策</p>
-        <p>把 AI 融入产品设计，提升用户体验</p>
-        <p>近期开始尝试攀岩，训练身体与心智的平衡</p>
-      </section>
-      <section class="panel-block">
-        <p class="panel-quote">
-          成为懂用户、懂技术、懂商业的产品人，做出有温度的好产品。
-        </p>
-      </section>
-    `
-  },
-  {
-    id: "gallery",
-    eyebrow: "Envelope 05",
-    title: "你想看看我吗！",
-    shortLabel: "看看我",
-    subtitle: "四封信，四张瞬间，等你来拆开",
-    angle: 0,
-    accent: "#d4a574",
-    html: `
-      <section class="panel-block">
-        <p class="panel-kicker">Photo Gallery</p>
-        <h2>你想看看我吗！</h2>
-        <p class="panel-quote">四封信，四张瞬间，等你来拆开。</p>
-      </section>
-      <section class="panel-block">
-        <p class="panel-mini-title">玩法</p>
-        <p class="panel-text">点击下方的按钮进入照片信封空间，左右拖拽旋转，把任一信封移到最前，点击即可打开照片。</p>
-      </section>
-      <section class="panel-block gallery-enter-block">
-        <button class="gallery-enter" data-enter-gallery>进入照片空间</button>
-      </section>
-    `
-  },
-  {
-    id: "contact",
-    eyebrow: "Envelope 06",
-    title: "联系我",
-    shortLabel: "联系",
-    subtitle: "期待一起做出有温度的好产品",
+    subtitle: "Future Direction",
     angle: 0,
     accent: "#c9a88c",
     html: `
       <section class="panel-block">
-        <p class="panel-kicker">Contact</p>
-        <h2>保持联系</h2>
-        <p class="panel-quote">期待一起做出有温度的好产品。</p>
-      </section>
-      <section class="panel-grid">
-        <div><span>手机</span><strong>16620063787</strong></div>
-        <div><span>邮箱</span><strong>2114214896@qq.com</strong></div>
+        <p class="panel-kicker">Future Direction</p>
+        <h2>产品经理</h2>
+        <p class="panel-text">理想职业是产品经理——可以是实体产品，也可以是互联网产品。正在为此持续学习，系统积累产品方法论、用户研究和数据分析的能力。</p>
+        <p class="panel-translation">Her ideal career is product manager, either for physical products or internet products. She is continuously learning product methodology, user research, and data analysis to prepare for this direction.</p>
       </section>
       <section class="panel-block">
-        <p class="panel-mini-title">社交平台</p>
-        <p class="panel-link"><a href="https://github.com/uan-iel" target="_blank" rel="noreferrer">GitHub: uan-iel</a></p>
-        <p class="panel-link"><a href="https://www.xiaohongshu.com/user/profile/1022725683" target="_blank" rel="noreferrer">小红书: 1022725683</a></p>
+        <p class="panel-text">对产品经理这个职业的理解是：做产品的本质是理解用户、定义需求、推动落地。关注从0到1搭建产品的全过程，也关注如何将AI能力融入产品设计，真正提升用户体验。</p>
+        <p class="panel-translation">Her understanding of product management is that building products means understanding users, defining needs, and driving execution. She cares about the entire process from zero to one, as well as how AI can be integrated into product design to genuinely improve user experience.</p>
+      </section>
+      <section class="panel-block">
+        <p class="panel-quote">成为懂用户、懂技术、懂商业的产品人，做出有温度的好产品。</p>
+        <p class="panel-translation">To become a product person who understands users, technology, and business, and to create thoughtful products with warmth.</p>
       </section>
     `
   }
@@ -293,16 +515,16 @@ activeCard.className = "detail-card";
 cardLayer.appendChild(activeCard);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color("#f7f4ef");
-scene.fog = new THREE.Fog("#f7f4ef", 10, 22);
+scene.background = new THREE.Color("#f8f3eb");
+scene.fog = new THREE.Fog("#f8f3eb", 8, 20);
 
 const sizes = {
   width: window.innerWidth,
   height: window.innerHeight
 };
 
-const camera = new THREE.PerspectiveCamera(42, sizes.width / sizes.height, 0.1, 100);
-camera.position.set(0, 0.4, 9.5);
+const camera = new THREE.PerspectiveCamera(38, sizes.width / sizes.height, 0.1, 100);
+camera.position.set(0, 0.45, 8.6);
 scene.add(camera);
 
 const renderer = new THREE.WebGLRenderer({
@@ -329,11 +551,11 @@ controls.dampingFactor = 0.06;
 controls.target.set(0, 0, 0);
 controls.update();
 
-const ambientLight = new THREE.HemisphereLight("#fffdfb", "#e8ddd0", 1.35);
+const ambientLight = new THREE.HemisphereLight("#fffaf2", "#e3d5c4", 1.18);
 scene.add(ambientLight);
 
-const keyLight = new THREE.DirectionalLight("#fff8f0", 2.2);
-keyLight.position.set(5, 8, 6);
+const keyLight = new THREE.DirectionalLight("#fff3dd", 2.55);
+keyLight.position.set(-4, 7, 7);
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.width = 1024;
 keyLight.shadow.mapSize.height = 1024;
@@ -342,12 +564,12 @@ keyLight.shadow.camera.far = 25;
 keyLight.shadow.bias = -0.0005;
 scene.add(keyLight);
 
-const rimLight = new THREE.DirectionalLight("#f0e6d8", 1.4);
-rimLight.position.set(-6, 2, -5);
+const rimLight = new THREE.DirectionalLight("#f9e8c8", 1.65);
+rimLight.position.set(6, 2.4, -4);
 scene.add(rimLight);
 
-const fillLight = new THREE.DirectionalLight("#f5efe6", 0.9);
-fillLight.position.set(-3, -2, 7);
+const fillLight = new THREE.DirectionalLight("#efe4d5", 0.72);
+fillLight.position.set(3, -2, 5);
 scene.add(fillLight);
 
 const paperTexture = new THREE.CanvasTexture(createPaperCanvas());
@@ -363,29 +585,13 @@ paperBumpTexture.repeat.set(3, 3);
 paperBumpTexture.colorSpace = THREE.NoColorSpace;
 
 const paperMaterial = new THREE.MeshStandardMaterial({
-  color: "#faf8f4",
-  roughness: 0.92,
+  color: "#f3eadb",
+  roughness: 0.98,
   metalness: 0,
   side: THREE.DoubleSide,
   map: paperTexture,
   bumpMap: paperBumpTexture,
-  bumpScale: 0.04
-});
-
-const envelopeInsideMaterial = new THREE.MeshStandardMaterial({
-  color: "#f2ede4",
-  roughness: 0.95,
-  metalness: 0,
-  side: THREE.DoubleSide,
-  map: paperTexture,
-  bumpMap: paperBumpTexture,
-  bumpScale: 0.03
-});
-
-const threadMaterial = new THREE.MeshStandardMaterial({
-  color: "#e8ddd0",
-  roughness: 1,
-  metalness: 0
+  bumpScale: 0.075
 });
 
 const raycaster = new THREE.Raycaster();
@@ -394,20 +600,22 @@ const pointer = new THREE.Vector2();
 const mainGroup = new THREE.Group();
 scene.add(mainGroup);
 
-const craneGroup = createPaperCrane();
-craneGroup.position.set(0, 0, 0);
+const craneGroup = createOrigamiCrane();
+craneGroup.position.set(0.05, -0.03, 0);
+craneGroup.rotation.set(-0.08, -0.1, -0.02);
+craneGroup.scale.setScalar(1.12);
 mainGroup.add(craneGroup);
 
 const infoEnvelopes: InfoEnvelopeRuntime[] = [];
 const infoEnvelopeClickables: THREE.Object3D[] = [];
 
 const envelopePositions = [
-  new THREE.Vector3(2.6, 0.6, 1.1),
-  new THREE.Vector3(-2.3, -0.4, 1.4),
-  new THREE.Vector3(1.2, 1.4, -2.0),
-  new THREE.Vector3(-1.6, 1.0, -1.8),
-  new THREE.Vector3(0.4, -1.5, 2.2),
-  new THREE.Vector3(-0.8, -1.2, -2.4)
+  new THREE.Vector3(-2.45, 1.35, -1.1),
+  new THREE.Vector3(2.65, 0.45, -0.75),
+  new THREE.Vector3(-2.75, -1.15, 0.55),
+  new THREE.Vector3(1.35, -1.55, 0.7),
+  new THREE.Vector3(0.9, 1.72, -1.7),
+  new THREE.Vector3(-3.28, 0.05, -1.9)
 ];
 
 faces.forEach((face, index) => {
@@ -423,6 +631,41 @@ faces.forEach((face, index) => {
   infoEnvelopes.push(runtime);
   infoEnvelopeClickables.push(runtime.body, runtime.flap);
   mainGroup.add(runtime.group);
+});
+
+const childEnvelopeGroup = new THREE.Group();
+childEnvelopeGroup.visible = false;
+mainGroup.add(childEnvelopeGroup);
+
+const childEnvelopes: InfoEnvelopeRuntime[] = [];
+const childEnvelopeClickables: THREE.Object3D[] = [];
+
+faces.forEach((parent) => {
+  const children = parent.subEnvelopes ?? [];
+  children.forEach((child, childIndex) => {
+    const runtime = createInfoEnvelope(child, childIndex);
+    const angle = -Math.PI / 2 + (Math.PI * 2 * childIndex) / Math.max(children.length, 1);
+    const radius = children.length === 4 ? 1.95 : 1.75;
+    const position = new THREE.Vector3(
+      Math.cos(angle) * radius,
+      Math.sin(angle) * 0.72,
+      Math.sin(angle) * radius
+    );
+
+    runtime.group.position.copy(position);
+    runtime.basePosition.copy(position);
+    runtime.group.lookAt(new THREE.Vector3(0, 0.05, 0));
+    runtime.baseRotation.copy(runtime.group.rotation);
+    runtime.group.visible = false;
+    runtime.group.scale.setScalar(0.001);
+    runtime.group.userData.parentId = parent.id;
+    runtime.body.userData.parentId = parent.id;
+    runtime.flap.userData.parentId = parent.id;
+
+    childEnvelopes.push(runtime);
+    childEnvelopeClickables.push(runtime.body, runtime.flap);
+    childEnvelopeGroup.add(runtime.group);
+  });
 });
 
 const galleryGroup = new THREE.Group();
@@ -445,14 +688,17 @@ const textureLoader = new THREE.TextureLoader();
 const photoEnvelopes: PhotoEnvelopeRuntime[] = [];
 const photoEnvelopeClickables: THREE.Object3D[] = [];
 
-PHOTO_URLS.forEach((url, index) => {
-  const envelope = createPhotoEnvelope(url, index);
-  photoEnvelopes.push(envelope);
-  photoEnvelopeClickables.push(envelope.body, envelope.photo, envelope.flap);
-  galleryGroup.add(envelope.group);
-});
+if (canLoadPhotoTextures) {
+  PHOTO_URLS.forEach((url, index) => {
+    const envelope = createPhotoEnvelope(url, index);
+    photoEnvelopes.push(envelope);
+    photoEnvelopeClickables.push(envelope.body, envelope.photo, envelope.flap);
+    galleryGroup.add(envelope.group);
+  });
+}
 
 let activeId: string | null = null;
+let activeParentId: string | null = null;
 let isDragging = false;
 let galleryMode = false;
 let galleryRotation = 0;
@@ -462,10 +708,13 @@ let lastGalleryPointerX = 0;
 let galleryDragDistance = 0;
 let hoveredPhotoIndex: number | null = null;
 let openedPhotoIndex: number | null = null;
-let activePointerId: number | null = null;
 let hoveredInfoId: string | null = null;
 
 function enterGallery(): void {
+  if (!photoEnvelopes.length) {
+    return;
+  }
+
   galleryMode = true;
   galleryRotation = 0;
   galleryVelocity = 0;
@@ -561,6 +810,10 @@ function exitGallery(): void {
 }
 
 function openLightbox(index: number): void {
+  if (!PHOTO_URLS[index]) {
+    return;
+  }
+
   openedPhotoIndex = index;
   lightboxImg!.src = PHOTO_URLS[index];
   lightbox!.classList.add("visible");
@@ -578,7 +831,8 @@ function updatePointer(clientX: number, clientY: number): void {
 
 function pickInfoEnvelope(): THREE.Object3D | null {
   raycaster.setFromCamera(pointer, camera);
-  const intersections = raycaster.intersectObjects(infoEnvelopeClickables, false);
+  const targets = activeParentId ? childEnvelopeClickables : infoEnvelopeClickables;
+  const intersections = raycaster.intersectObjects(targets, false);
   const hit = intersections[0]?.object ?? null;
 
   if (hit) {
@@ -588,6 +842,47 @@ function pickInfoEnvelope(): THREE.Object3D | null {
   }
 
   return hit;
+}
+
+function findFaceById(id: string | null): FaceData | null {
+  if (!id) {
+    return null;
+  }
+
+  for (const face of faces) {
+    if (face.id === id) {
+      return face;
+    }
+
+    const child = face.subEnvelopes?.find((item) => item.id === id);
+    if (child) {
+      return child;
+    }
+  }
+
+  return null;
+}
+
+function setChildEnvelopeLayer(parentId: string | null): void {
+  activeParentId = parentId;
+  childEnvelopeGroup.visible = Boolean(parentId);
+
+  childEnvelopes.forEach((runtime, index) => {
+    const isVisible = runtime.data.parentId === parentId;
+    runtime.group.visible = isVisible;
+    runtime.openT = 0;
+    runtime.hoverT = 0;
+    runtime.group.position.copy(runtime.basePosition);
+
+    gsap.to(runtime.group.scale, {
+      x: isVisible ? 0.9 : 0.001,
+      y: isVisible ? 0.9 : 0.001,
+      z: isVisible ? 0.9 : 0.001,
+      duration: isVisible ? 0.6 : 0.3,
+      delay: isVisible ? index * 0.04 : 0,
+      ease: isVisible ? "back.out(1.4)" : "power2.in"
+    });
+  });
 }
 
 function pickPhotoEnvelope(): THREE.Object3D | null {
@@ -606,9 +901,13 @@ function pickPhotoEnvelope(): THREE.Object3D | null {
 
 function setActiveFace(id: string | null): void {
   activeId = id;
+  const content = findFaceById(id);
+  const selectedMain = faces.find((face) => face.id === id) ?? null;
+  const selectedParentId = selectedMain?.subEnvelopes?.length ? selectedMain.id : content?.parentId ?? null;
+  setChildEnvelopeLayer(selectedParentId);
 
   infoEnvelopes.forEach((runtime) => {
-    const isActive = runtime.data.id === id;
+    const isActive = runtime.data.id === id || runtime.data.id === selectedParentId;
     const targetOpen = isActive ? 1 : 0;
 
     gsap.to(runtime, {
@@ -628,7 +927,14 @@ function setActiveFace(id: string | null): void {
     });
   });
 
-  const content = faces.find((face) => face.id === id) ?? null;
+  childEnvelopes.forEach((runtime) => {
+    const isActive = runtime.data.id === id;
+    gsap.to(runtime, {
+      openT: isActive ? 1 : 0,
+      duration: 0.5,
+      ease: "power2.out"
+    });
+  });
 
   if (!content) {
     activeCard.classList.remove("visible");
@@ -636,15 +942,37 @@ function setActiveFace(id: string | null): void {
     return;
   }
 
+  const isParentOverview = Boolean(content.subEnvelopes?.length);
+  const bodyHtml = isParentOverview
+    ? `
+      <section class="panel-block">
+        <p class="panel-kicker">Choose a Sub Envelope</p>
+        <h2>${content.title}</h2>
+        <p class="panel-translation">Click one of the sub envelopes in the scene to read the full detailed story.</p>
+        <p class="panel-text">点击场景中出现的子信封，查看更完整的细节内容。</p>
+      </section>
+      <section class="sub-envelope-list">
+        ${content.subEnvelopes!.map((item) => `
+          <button class="sub-envelope-chip" data-open-sub="${item.id}">
+            <span>${item.title}</span>
+            <em>${item.subtitle}</em>
+          </button>
+        `).join("")}
+      </section>
+    `
+    : content.html;
+
   activeCard.innerHTML = `
     <div class="card-shell">
+      ${content.parentId ? `<button class="panel-back" data-back-parent="${content.parentId}">返回子信封</button>` : ""}
       <p class="card-eyebrow">${content.eyebrow}</p>
-      <h3>${content.title}</h3>
       <p class="card-subtitle type-target">${content.subtitle}</p>
-      <div class="card-body">${content.html}</div>
+      <h3>${content.title}</h3>
+      <div class="card-body">${bodyHtml}</div>
     </div>
   `;
 
+  reorderBilingualContent(activeCard);
   activeCard.classList.add("visible");
 
   activeCard.querySelectorAll<HTMLElement>(".panel-block, .panel-grid, .tag-row, .stats-row, .timeline, .panel-list").forEach((item, index) => {
@@ -658,7 +986,41 @@ function setActiveFace(id: string | null): void {
     });
   }
 
+  activeCard.querySelectorAll<HTMLButtonElement>("[data-open-sub]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setActiveFace(button.dataset.openSub ?? null);
+    });
+  });
+
+  const backButton = activeCard.querySelector<HTMLButtonElement>("[data-back-parent]");
+  if (backButton) {
+    backButton.addEventListener("click", () => {
+      setActiveFace(backButton.dataset.backParent ?? null);
+    });
+  }
+
   runTypewriterAnimation();
+}
+
+function reorderBilingualContent(root: HTMLElement): void {
+  root.querySelectorAll<HTMLElement>(".panel-block").forEach((block) => {
+    block.querySelectorAll<HTMLElement>(".panel-translation").forEach((translation) => {
+      const previous = translation.previousElementSibling;
+
+      if (previous?.matches(".panel-text, .panel-quote, .panel-link")) {
+        block.insertBefore(translation, previous);
+      }
+    });
+  });
+
+  root.querySelectorAll<HTMLElement>(".stats-row div").forEach((item) => {
+    const chinese = item.querySelector("span");
+    const english = item.querySelector("em");
+
+    if (chinese && english && (chinese.compareDocumentPosition(english) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+      item.insertBefore(english, chinese);
+    }
+  });
 }
 
 function positionCard(): void {
@@ -703,15 +1065,41 @@ function runTypewriterAnimation(): void {
   });
 }
 
+function handleGalleryDragMove(clientX: number): void {
+  if (!galleryMode || !isGalleryDragging) {
+    return;
+  }
+
+  const deltaX = clientX - lastGalleryPointerX;
+  galleryRotation -= deltaX * 0.008;
+  galleryVelocity = -deltaX * 0.008;
+  lastGalleryPointerX = clientX;
+  galleryDragDistance += Math.abs(deltaX);
+}
+
+function handleGalleryDragEnd(clientX: number): void {
+  if (!galleryMode || !isGalleryDragging) {
+    return;
+  }
+
+  isGalleryDragging = false;
+  canvas!.style.cursor = "grab";
+
+  if (galleryDragDistance < 8) {
+    updatePointer(clientX, window.innerHeight / 2);
+    const hit = pickPhotoEnvelope();
+    if (hit) {
+      const index = hit.userData.envelopeIndex as number;
+      openLightbox(index);
+    }
+  }
+}
+
 canvas.addEventListener("pointermove", (event) => {
   updatePointer(event.clientX, event.clientY);
 
-  if (galleryMode && isGalleryDragging && event.pointerId === activePointerId) {
-    const deltaX = event.clientX - lastGalleryPointerX;
-    galleryRotation -= deltaX * 0.006;
-    galleryVelocity = -deltaX * 0.006;
-    lastGalleryPointerX = event.clientX;
-    galleryDragDistance += Math.abs(deltaX);
+  if (galleryMode && isGalleryDragging) {
+    handleGalleryDragMove(event.clientX);
     return;
   }
 
@@ -721,20 +1109,24 @@ canvas.addEventListener("pointermove", (event) => {
     return;
   }
 
-  const hit = pickInfoEnvelope();
-  canvas.style.cursor = hit ? "pointer" : "grab";
+  pickInfoEnvelope();
+  canvas.style.cursor = hoveredInfoId ? "pointer" : "grab";
 });
 
 canvas.addEventListener("pointerdown", (event) => {
   if (galleryMode) {
+    event.preventDefault();
     isGalleryDragging = true;
-    activePointerId = event.pointerId;
     hoveredPhotoIndex = null;
     lastGalleryPointerX = event.clientX;
     galleryDragDistance = 0;
     galleryVelocity = 0;
     canvas.style.cursor = "grabbing";
-    canvas.setPointerCapture(event.pointerId);
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch {
+      // Some browsers/synthetic events don't support setPointerCapture.
+    }
     return;
   }
 
@@ -745,18 +1137,8 @@ canvas.addEventListener("pointerdown", (event) => {
 canvas.addEventListener("pointerup", (event) => {
   updatePointer(event.clientX, event.clientY);
 
-  if (galleryMode && event.pointerId === activePointerId) {
-    isGalleryDragging = false;
-    activePointerId = null;
-    canvas.style.cursor = "grab";
-
-    if (galleryDragDistance < 8) {
-      const hit = pickPhotoEnvelope();
-      if (hit) {
-        const index = hit.userData.envelopeIndex as number;
-        openLightbox(index);
-      }
-    }
+  if (galleryMode) {
+    handleGalleryDragEnd(event.clientX);
     return;
   }
 
@@ -774,19 +1156,21 @@ canvas.addEventListener("pointerup", (event) => {
   canvas.style.cursor = hoveredInfoId ? "pointer" : "grab";
 });
 
+window.addEventListener("pointermove", (event) => {
+  if (galleryMode && isGalleryDragging) {
+    handleGalleryDragMove(event.clientX);
+  }
+});
+
 window.addEventListener("pointerup", (event) => {
-  if (galleryMode && isGalleryDragging && event.pointerId === activePointerId) {
-    isGalleryDragging = false;
-    activePointerId = null;
-    canvas.style.cursor = "grab";
+  if (galleryMode && isGalleryDragging) {
+    handleGalleryDragEnd(event.clientX);
   }
 });
 
 window.addEventListener("pointercancel", (event) => {
-  if (galleryMode && isGalleryDragging && event.pointerId === activePointerId) {
-    isGalleryDragging = false;
-    activePointerId = null;
-    canvas.style.cursor = "grab";
+  if (galleryMode && isGalleryDragging) {
+    handleGalleryDragEnd(event.clientX);
   }
 });
 
@@ -856,11 +1240,46 @@ function tick(): void {
       const labelOpacity = 0.55 + runtime.hoverT * 0.25 + runtime.openT * 0.2;
       (runtime.label.material as THREE.MeshBasicMaterial).opacity = labelOpacity;
     });
+
+    childEnvelopes.forEach((runtime, index) => {
+      if (!runtime.group.visible) {
+        return;
+      }
+
+      const phase = index * 1.15;
+      const individualFloat = Math.sin(elapsed * 1.05 + phase) * 0.045;
+      const targetY = runtime.basePosition.y + floatY * 0.4 + individualFloat;
+      runtime.group.position.y += (targetY - runtime.group.position.y) * 0.06;
+
+      const baseRotX = runtime.baseRotation.x + Math.sin(elapsed * 0.5 + phase) * 0.04;
+      const baseRotY = runtime.baseRotation.y + Math.cos(elapsed * 0.38 + phase) * 0.05;
+      const baseRotZ = runtime.baseRotation.z + Math.sin(elapsed * 0.3 + phase) * 0.03;
+      runtime.group.rotation.x += (baseRotX - runtime.group.rotation.x) * 0.05;
+      runtime.group.rotation.y += (baseRotY - runtime.group.rotation.y) * 0.05;
+      runtime.group.rotation.z += (baseRotZ - runtime.group.rotation.z) * 0.05;
+
+      const isHovered = runtime.data.id === hoveredInfoId;
+      const targetHover = isHovered ? 1 : 0;
+      runtime.hoverT += (targetHover - runtime.hoverT) * 0.14;
+
+      const flapTarget = -runtime.openT * Math.PI * 0.76 - runtime.hoverT * Math.PI * 0.2;
+      runtime.flap.rotation.x += (flapTarget - runtime.flap.rotation.x) * 0.12;
+
+      const labelOpacity = 0.62 + runtime.hoverT * 0.24 + runtime.openT * 0.14;
+      (runtime.label.material as THREE.MeshBasicMaterial).opacity = labelOpacity;
+    });
   }
 
   if (galleryMode || galleryGroup.visible) {
     galleryRotation += galleryVelocity;
     galleryVelocity *= 0.94;
+
+    if (!photoEnvelopes.length) {
+      controls.update();
+      renderer.render(scene, camera);
+      window.requestAnimationFrame(tick);
+      return;
+    }
 
     const snapSpeed = 0.04;
     const segment = (Math.PI * 2) / photoEnvelopes.length;
@@ -932,98 +1351,206 @@ function tick(): void {
 
 tick();
 
-function createInfoEnvelope(data: FaceData, index: number): InfoEnvelopeRuntime {
+function createEnvelopeStringAndBow(width: number): THREE.Group {
   const group = new THREE.Group();
-  group.userData.faceId = data.id;
+  const stringMat = new THREE.MeshStandardMaterial({
+    color: "#d7c9b8",
+    roughness: 1,
+    metalness: 0
+  });
 
-  const width = 1.35;
-  const height = 0.9;
-  const depth = 0.1;
+  const bandGeometry = new THREE.BoxGeometry(width + 0.08, 0.055, 0.16);
+  const band = new THREE.Mesh(bandGeometry, stringMat);
+  group.add(band);
 
-  const bodyGeometry = new THREE.BoxGeometry(width, height, depth);
-  const body = new THREE.Mesh(bodyGeometry, paperMaterial.clone());
-  body.userData.faceId = data.id;
-  body.castShadow = true;
-  body.receiveShadow = true;
-  group.add(body);
+  const loopGeometry = new THREE.TorusGeometry(0.075, 0.014, 6, 16, Math.PI * 1.7);
 
-  const insideGeometry = new THREE.PlaneGeometry(width * 0.9, height * 0.9);
-  const inside = new THREE.Mesh(insideGeometry, envelopeInsideMaterial.clone());
-  inside.position.set(0, 0, -depth / 2 - 0.001);
-  group.add(inside);
+  const leftLoop = new THREE.Mesh(loopGeometry, stringMat);
+  leftLoop.position.set(-0.055, 0, 0.055);
+  leftLoop.rotation.z = 0.4;
+  group.add(leftLoop);
 
-  const flapShape = new THREE.Shape();
-  flapShape.moveTo(-width / 2, 0);
-  flapShape.lineTo(width / 2, 0);
-  flapShape.lineTo(0, height * 0.55);
-  flapShape.lineTo(-width / 2, 0);
-  const flapGeometry = new THREE.ShapeGeometry(flapShape);
-  const flap = new THREE.Mesh(flapGeometry, paperMaterial.clone());
-  flap.position.set(0, height / 2, depth / 2 + 0.012);
-  flap.userData.faceId = data.id;
+  const rightLoop = new THREE.Mesh(loopGeometry, stringMat);
+  rightLoop.position.set(0.055, 0, 0.055);
+  rightLoop.rotation.z = -0.4;
+  group.add(rightLoop);
+
+  const tailCurve1 = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.07, 0, 0.055),
+    new THREE.Vector3(0.13, -0.05, 0.06),
+    new THREE.Vector3(0.16, -0.13, 0.04)
+  ]);
+  const tail1 = new THREE.Mesh(new THREE.TubeGeometry(tailCurve1, 12, 0.011, 6, false), stringMat);
+  group.add(tail1);
+
+  const tailCurve2 = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.07, 0, 0.055),
+    new THREE.Vector3(-0.13, -0.05, 0.06),
+    new THREE.Vector3(-0.16, -0.13, 0.04)
+  ]);
+  const tail2 = new THREE.Mesh(new THREE.TubeGeometry(tailCurve2, 12, 0.011, 6, false), stringMat);
+  group.add(tail2);
+
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.024, 8, 8), stringMat);
+  knot.position.set(0, 0, 0.065);
+  group.add(knot);
+
+  return group;
+}
+
+function createRealisticEnvelope(width: number, height: number, depth: number): {
+  group: THREE.Group;
+  body: THREE.Mesh;
+  flap: THREE.Mesh;
+  outline: THREE.LineSegments;
+  crease: THREE.LineSegments;
+} {
+  const group = new THREE.Group();
+  const mat = paperMaterial.clone();
+  mat.color = new THREE.Color("#efe4d2");
+  mat.flatShading = true;
+
+  const flapMat = paperMaterial.clone();
+  flapMat.color = new THREE.Color("#f6eddf");
+  flapMat.flatShading = true;
+
+  // Back panel
+  const backGeometry = new THREE.PlaneGeometry(width, height);
+  const back = new THREE.Mesh(backGeometry, mat);
+  back.position.z = -depth / 2;
+  back.rotation.y = Math.PI;
+  back.castShadow = true;
+  back.receiveShadow = true;
+  group.add(back);
+
+  // Bottom triangular flap folded up
+  const bottomFlap = createPaperPanel([
+    new THREE.Vector3(-width / 2, -height / 2, -depth / 2),
+    new THREE.Vector3(width / 2, -height / 2, -depth / 2),
+    new THREE.Vector3(0, 0, depth / 2 + 0.004)
+  ], mat);
+  group.add(bottomFlap);
+
+  // Left triangular flap folded in
+  const leftFlap = createPaperPanel([
+    new THREE.Vector3(-width / 2, -height / 2, -depth / 2),
+    new THREE.Vector3(-width / 2, height / 2, -depth / 2),
+    new THREE.Vector3(0, 0, depth / 2 + 0.002)
+  ], mat);
+  group.add(leftFlap);
+
+  // Right triangular flap folded in
+  const rightFlap = createPaperPanel([
+    new THREE.Vector3(width / 2, -height / 2, -depth / 2),
+    new THREE.Vector3(0, 0, depth / 2 + 0.002),
+    new THREE.Vector3(width / 2, height / 2, -depth / 2)
+  ], mat);
+  group.add(rightFlap);
+
+  // Top triangular flap folded down (the movable flap)
+  const flapGeometry = new THREE.BufferGeometry();
+  const flapPositions = [
+    -width / 2, 0, 0,
+    width / 2, 0, 0,
+    0, -height * 0.55, 0.02
+  ];
+  const flapNormals = [0, 0, 1, 0, 0, 1, 0, 0, 1];
+  const flapUvs = [0, 0, 1, 0, 0.5, 1];
+  flapGeometry.setAttribute("position", new THREE.Float32BufferAttribute(flapPositions, 3));
+  flapGeometry.setAttribute("normal", new THREE.Float32BufferAttribute(flapNormals, 3));
+  flapGeometry.setAttribute("uv", new THREE.Float32BufferAttribute(flapUvs, 2));
+
+  const flap = new THREE.Mesh(flapGeometry, flapMat);
+  flap.position.set(0, height / 2, depth / 2 + 0.014);
   flap.castShadow = true;
+  flap.receiveShadow = true;
   group.add(flap);
 
-  const labelTexture = new THREE.CanvasTexture(createEnvelopeLabelCanvas(data.shortLabel));
-  labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  labelTexture.colorSpace = THREE.SRGBColorSpace;
-  const labelGeometry = new THREE.PlaneGeometry(width * 0.62, height * 0.28);
-  const labelMaterial = new THREE.MeshBasicMaterial({
-    map: labelTexture,
-    transparent: true,
-    opacity: 0.55,
-    side: THREE.DoubleSide
-  });
-  const label = new THREE.Mesh(labelGeometry, labelMaterial);
-  label.position.set(0, -0.02, depth / 2 + 0.018);
-  label.userData.faceId = data.id;
-  group.add(label);
+  // Invisible hit box for reliable clicking
+  const hitBoxGeometry = new THREE.BoxGeometry(width * 1.05, height * 1.05, depth * 2);
+  const hitBoxMaterial = new THREE.MeshBasicMaterial({ visible: false });
+  const body = new THREE.Mesh(hitBoxGeometry, hitBoxMaterial);
+  group.add(body);
 
-  const outline = new THREE.LineSegments(
-    new THREE.EdgesGeometry(bodyGeometry),
+  // Crease lines: diagonals from corners to center and flap base
+  const creasePoints = [
+    new THREE.Vector3(-width / 2, -height / 2, depth / 2 + 0.001),
+    new THREE.Vector3(0, 0, depth / 2 + 0.001),
+    new THREE.Vector3(width / 2, -height / 2, depth / 2 + 0.001),
+    new THREE.Vector3(0, 0, depth / 2 + 0.001),
+    new THREE.Vector3(-width / 2, height / 2, depth / 2 + 0.001),
+    new THREE.Vector3(0, 0, depth / 2 + 0.001),
+    new THREE.Vector3(width / 2, height / 2, depth / 2 + 0.001),
+    new THREE.Vector3(0, 0, depth / 2 + 0.001),
+    new THREE.Vector3(-width / 2, height / 2, depth / 2 + 0.001),
+    new THREE.Vector3(width / 2, height / 2, depth / 2 + 0.001)
+  ];
+  const creaseGeometry = new THREE.BufferGeometry().setFromPoints(creasePoints);
+  const crease = new THREE.LineSegments(
+    creaseGeometry,
     new THREE.LineBasicMaterial({
-      color: "#d9cfc0",
+      color: "#b9aa98",
       transparent: true,
-      opacity: 0.55
+      opacity: 0.56
+    })
+  );
+  group.add(crease);
+
+  // Outer outline
+  const outlineGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(width, height, depth));
+  const outline = new THREE.LineSegments(
+    outlineGeometry,
+    new THREE.LineBasicMaterial({
+      color: "#d8c4a5",
+      transparent: true,
+      opacity: 0.72
     })
   );
   group.add(outline);
 
-  const crease = new THREE.LineSegments(
-    new THREE.WireframeGeometry(bodyGeometry),
-    new THREE.LineBasicMaterial({
-      color: "#cdc2b2",
-      transparent: true,
-      opacity: 0.18
-    })
-  );
-  crease.scale.setScalar(0.99);
-  group.add(crease);
+  // String and bow
+  const stringGroup = createEnvelopeStringAndBow(width);
+  stringGroup.position.set(0, 0, depth / 2 + 0.028);
+  group.add(stringGroup);
 
-  const flapOutline = new THREE.LineSegments(
-    new THREE.EdgesGeometry(flapGeometry),
-    new THREE.LineBasicMaterial({
-      color: "#d9cfc0",
-      transparent: true,
-      opacity: 0.55
-    })
-  );
-  flap.add(flapOutline);
+  return { group, body, flap, outline, crease };
+}
 
-  if (index % 2 === 0) {
-    const thread = createEnvelopeThread(width);
-    thread.position.set(0, 0, depth / 2 + 0.025);
-    group.add(thread);
-  }
+function createInfoEnvelope(data: FaceData, _index: number): InfoEnvelopeRuntime {
+  const width = 1.42;
+  const height = 0.94;
+  const depth = 0.16;
+
+  const envelope = createRealisticEnvelope(width, height, depth);
+  const group = envelope.group;
+  group.userData.faceId = data.id;
+
+  envelope.body.userData.faceId = data.id;
+  envelope.flap.userData.faceId = data.id;
+
+  const labelTexture = new THREE.CanvasTexture(createEnvelopeLabelCanvas(data.shortLabel));
+  labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  labelTexture.colorSpace = THREE.SRGBColorSpace;
+  const labelGeometry = new THREE.PlaneGeometry(width * 0.58, height * 0.26);
+  const labelMaterial = new THREE.MeshBasicMaterial({
+    map: labelTexture,
+    transparent: true,
+    opacity: 0.6,
+    side: THREE.DoubleSide
+  });
+  const label = new THREE.Mesh(labelGeometry, labelMaterial);
+  label.position.set(0, 0.08, depth / 2 + 0.055);
+  label.userData.faceId = data.id;
+  group.add(label);
 
   return {
     data,
     group,
-    body,
-    flap,
+    body: envelope.body,
+    flap: envelope.flap,
     label,
-    outline,
-    crease,
+    outline: envelope.outline,
+    crease: envelope.crease,
     basePosition: new THREE.Vector3(),
     baseRotation: new THREE.Euler(),
     hoverT: 0,
@@ -1031,41 +1558,18 @@ function createInfoEnvelope(data: FaceData, index: number): InfoEnvelopeRuntime 
   };
 }
 
-function createEnvelopeThread(width: number): THREE.Group {
-  const group = new THREE.Group();
-
-  const curve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-width * 0.22, -0.08, 0),
-    new THREE.Vector3(-width * 0.05, 0.04, 0.01),
-    new THREE.Vector3(width * 0.05, -0.05, 0.01),
-    new THREE.Vector3(width * 0.22, 0.06, 0)
-  ]);
-
-  const geometry = new THREE.TubeGeometry(curve, 24, 0.014, 6, false);
-  const mesh = new THREE.Mesh(geometry, threadMaterial);
-  group.add(mesh);
-
-  const bowGeometry = new THREE.TorusGeometry(0.055, 0.012, 6, 16, Math.PI * 1.6);
-  const bow = new THREE.Mesh(bowGeometry, threadMaterial);
-  bow.position.set(0, 0, 0.012);
-  bow.rotation.z = 0.4;
-  group.add(bow);
-
-  return group;
-}
-
 function createPhotoEnvelope(photoUrl: string, index: number): PhotoEnvelopeRuntime {
-  const group = new THREE.Group();
   const baseAngle = index * (Math.PI / 2);
 
   const width = 1.5;
   const height = 1.0;
-  const depth = 0.12;
+  const depth = 0.18;
 
-  const bodyGeometry = new THREE.BoxGeometry(width, height, depth);
-  const body = new THREE.Mesh(bodyGeometry, paperMaterial.clone());
-  body.userData.envelopeIndex = index;
-  group.add(body);
+  const envelope = createRealisticEnvelope(width, height, depth);
+  const group = envelope.group;
+
+  envelope.body.userData.envelopeIndex = index;
+  envelope.flap.userData.envelopeIndex = index;
 
   const photoTexture = textureLoader.load(photoUrl, (texture) => {
     const img = texture.image;
@@ -1074,8 +1578,8 @@ function createPhotoEnvelope(photoUrl: string, index: number): PhotoEnvelopeRunt
     }
 
     const aspect = img.width / img.height;
-    const maxW = width * 0.78;
-    const maxH = height * 0.78;
+    const maxW = width * 0.72;
+    const maxH = height * 0.72;
 
     let pW: number;
     let pH: number;
@@ -1094,7 +1598,7 @@ function createPhotoEnvelope(photoUrl: string, index: number): PhotoEnvelopeRunt
   photoTexture.minFilter = THREE.LinearFilter;
   photoTexture.magFilter = THREE.LinearFilter;
 
-  const photoGeometry = new THREE.PlaneGeometry(width * 0.78, height * 0.78);
+  const photoGeometry = new THREE.PlaneGeometry(width * 0.72, height * 0.72);
   const photoMaterial = new THREE.MeshBasicMaterial({
     map: photoTexture,
     transparent: true,
@@ -1102,60 +1606,18 @@ function createPhotoEnvelope(photoUrl: string, index: number): PhotoEnvelopeRunt
     side: THREE.DoubleSide
   });
   const photo = new THREE.Mesh(photoGeometry, photoMaterial);
-  photo.position.set(0, -0.12, depth / 2 + 0.01);
+  photo.position.set(0, -0.12, -depth / 2 + 0.03);
   photo.scale.setScalar(0.88);
   photo.userData.envelopeIndex = index;
   group.add(photo);
 
-  const flapShape = new THREE.Shape();
-  flapShape.moveTo(-width / 2, 0);
-  flapShape.lineTo(width / 2, 0);
-  flapShape.lineTo(0, height * 0.55);
-  flapShape.lineTo(-width / 2, 0);
-  const flapGeometry = new THREE.ShapeGeometry(flapShape);
-  const flap = new THREE.Mesh(flapGeometry, paperMaterial.clone());
-  flap.position.set(0, height / 2, depth / 2 + 0.015);
-  flap.userData.envelopeIndex = index;
-  group.add(flap);
-
-  const outline = new THREE.LineSegments(
-    new THREE.EdgesGeometry(bodyGeometry),
-    new THREE.LineBasicMaterial({
-      color: "#d9cfc0",
-      transparent: true,
-      opacity: 0.55
-    })
-  );
-  group.add(outline);
-
-  const crease = new THREE.LineSegments(
-    new THREE.WireframeGeometry(bodyGeometry),
-    new THREE.LineBasicMaterial({
-      color: "#cdc2b2",
-      transparent: true,
-      opacity: 0.18
-    })
-  );
-  crease.scale.setScalar(0.99);
-  group.add(crease);
-
-  const flapOutline = new THREE.LineSegments(
-    new THREE.EdgesGeometry(flapGeometry),
-    new THREE.LineBasicMaterial({
-      color: "#d9cfc0",
-      transparent: true,
-      opacity: 0.55
-    })
-  );
-  flap.add(flapOutline);
-
   return {
     group,
-    body,
+    body: envelope.body,
     photo,
-    flap,
-    outline,
-    crease,
+    flap: envelope.flap,
+    outline: envelope.outline,
+    crease: envelope.crease,
     photoUrl,
     index,
     baseAngle,
@@ -1163,63 +1625,132 @@ function createPhotoEnvelope(photoUrl: string, index: number): PhotoEnvelopeRunt
   };
 }
 
-function createPaperCrane(): THREE.Group {
+function createPaperPanel(points: THREE.Vector3[], material: THREE.Material): THREE.Mesh {
+  const geometry = new THREE.BufferGeometry();
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+
+  let indices: number[];
+  if (points.length === 3) {
+    indices = [0, 1, 2];
+  } else {
+    indices = [0, 1, 2, 0, 2, 3];
+  }
+
+  const normal = new THREE.Vector3();
+  const edgeA = new THREE.Vector3().subVectors(points[1], points[0]);
+  const edgeB = new THREE.Vector3().subVectors(points[points.length === 3 ? 2 : 3], points[0]);
+  normal.crossVectors(edgeA, edgeB).normalize();
+
+  for (const index of indices) {
+    const point = points[index];
+    positions.push(point.x, point.y, point.z);
+    normals.push(normal.x, normal.y, normal.z);
+    uvs.push(index % 2, Math.floor(index / 2));
+  }
+
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function createOrigamiCrane(): THREE.Group {
   const crane = new THREE.Group();
   const mat = paperMaterial.clone();
-  mat.color = new THREE.Color("#faf8f4");
-  mat.roughness = 0.88;
+  mat.color = new THREE.Color("#f4ead9");
+  mat.roughness = 0.98;
+  mat.metalness = 0;
+  mat.side = THREE.DoubleSide;
+  mat.flatShading = true;
 
-  const bodyGeo = new THREE.ConeGeometry(0.35, 0.9, 4);
-  const body = new THREE.Mesh(bodyGeo, mat);
-  body.rotation.x = Math.PI / 2;
-  body.rotation.z = Math.PI / 4;
-  body.scale.set(1, 1, 0.45);
-  body.castShadow = true;
-  crane.add(body);
+  const creaseMat = new THREE.LineBasicMaterial({
+    color: "#bda98e",
+    transparent: true,
+    opacity: 0.58
+  });
 
-  const wingShape = new THREE.Shape();
-  wingShape.moveTo(0, 0);
-  wingShape.lineTo(1.6, 0.15);
-  wingShape.lineTo(1.9, 0.55);
-  wingShape.lineTo(0.4, 0.45);
-  wingShape.lineTo(0, 0);
-  const wingGeo = new THREE.ShapeGeometry(wingShape);
+  // Body ridge and key points
+  const bodyTop = new THREE.Vector3(0, 0.5, 0.04);
+  const bodyBottom = new THREE.Vector3(0.04, -0.54, 0);
+  const bodyFront = new THREE.Vector3(0.12, -0.02, 0.42);
+  const bodyBack = new THREE.Vector3(-0.08, 0.02, -0.34);
 
-  const leftWing = new THREE.Mesh(wingGeo, mat);
-  leftWing.position.set(-0.05, 0.12, 0);
-  leftWing.rotation.x = -Math.PI / 2;
-  leftWing.rotation.z = -0.18;
-  leftWing.castShadow = true;
-  crane.add(leftWing);
+  // Wing roots (slightly wider for a fuller body)
+  const leftRootTop = new THREE.Vector3(-0.24, 0.42, 0.08);
+  const leftRootBottom = new THREE.Vector3(-0.22, -0.32, 0.06);
+  const rightRootTop = new THREE.Vector3(0.24, 0.46, 0.08);
+  const rightRootBottom = new THREE.Vector3(0.24, -0.26, 0.04);
 
-  const rightWing = new THREE.Mesh(wingGeo, mat);
-  rightWing.position.set(0.05, 0.12, 0);
-  rightWing.rotation.x = -Math.PI / 2;
-  rightWing.rotation.z = Math.PI + 0.18;
-  rightWing.castShadow = true;
-  crane.add(rightWing);
+  // Wing tips
+  const leftWingTip = new THREE.Vector3(-2.35, 0.02, -0.08);
+  const rightWingTip = new THREE.Vector3(2.18, 1.1, -0.16);
 
-  const neckGeo = new THREE.ConeGeometry(0.08, 0.7, 4);
-  const neck = new THREE.Mesh(neckGeo, mat);
-  neck.position.set(0, 0.45, 0.35);
-  neck.rotation.x = -0.6;
-  neck.castShadow = true;
-  crane.add(neck);
+  // Neck and head
+  const neckBase = new THREE.Vector3(-0.08, 0.48, 0.1);
+  const neckMid = new THREE.Vector3(-0.38, 1.03, 0.36);
+  const headBase = new THREE.Vector3(-0.54, 1.14, 0.5);
+  const headTip = new THREE.Vector3(-0.88, 1.05, 0.68);
+  const headBack = new THREE.Vector3(-0.5, 1.2, 0.34);
 
-  const headGeo = new THREE.ConeGeometry(0.09, 0.28, 4);
-  const head = new THREE.Mesh(headGeo, mat);
-  head.position.set(0, 0.72, 0.54);
-  head.rotation.x = -1.1;
-  head.castShadow = true;
-  crane.add(head);
+  // Tail
+  const tailBase = new THREE.Vector3(0.05, -0.35, -0.12);
+  const tailMid = new THREE.Vector3(0.72, -0.28, -0.88);
+  const tailTip = new THREE.Vector3(1.42, -0.18, -1.46);
 
-  const tailGeo = new THREE.ConeGeometry(0.12, 0.9, 4);
-  const tail = new THREE.Mesh(tailGeo, mat);
-  tail.position.set(0, -0.1, -0.55);
-  tail.rotation.x = 2.4;
-  tail.scale.set(1, 1, 0.35);
-  tail.castShadow = true;
-  crane.add(tail);
+  // Body panels (split into triangles to stay planar)
+  crane.add(createPaperPanel([bodyTop, bodyFront, rightRootTop], mat));
+  crane.add(createPaperPanel([bodyTop, leftRootTop, bodyFront], mat));
+  crane.add(createPaperPanel([bodyFront, leftRootBottom, bodyBottom], mat));
+  crane.add(createPaperPanel([bodyFront, bodyBottom, rightRootBottom], mat));
+  crane.add(createPaperPanel([bodyTop, rightRootTop, bodyBack], mat));
+  crane.add(createPaperPanel([bodyTop, bodyBack, leftRootTop], mat));
+  crane.add(createPaperPanel([bodyBottom, leftRootBottom, bodyBack], mat));
+  crane.add(createPaperPanel([bodyBottom, bodyBack, rightRootBottom], mat));
+
+  // Wings: three triangular panels per side, all meeting at wing tip
+  crane.add(createPaperPanel([bodyTop, leftRootTop, leftWingTip], mat));
+  crane.add(createPaperPanel([leftRootTop, leftRootBottom, leftWingTip], mat));
+  crane.add(createPaperPanel([leftRootBottom, bodyBottom, leftWingTip], mat));
+
+  crane.add(createPaperPanel([bodyTop, rightWingTip, rightRootTop], mat));
+  crane.add(createPaperPanel([rightRootTop, rightWingTip, rightRootBottom], mat));
+  crane.add(createPaperPanel([rightRootBottom, rightWingTip, bodyBottom], mat));
+
+  // Neck as a slightly tapered flat panel
+  crane.add(createPaperPanel([neckBase, bodyTop, neckMid], mat));
+
+  // Head: small beak pyramid
+  crane.add(createPaperPanel([neckMid, headBase, headTip], mat));
+  crane.add(createPaperPanel([neckMid, headBack, headBase], mat));
+  crane.add(createPaperPanel([headBack, headTip, headBase], mat));
+
+  // Tail: two triangular panels
+  crane.add(createPaperPanel([tailBase, tailTip, bodyBottom], mat));
+  crane.add(createPaperPanel([tailBase, tailMid, tailTip], mat));
+  crane.add(createPaperPanel([tailBase, bodyBottom, tailMid], mat));
+
+  // Crease lines along major folds
+  const creasePoints = [
+    bodyTop, bodyBottom,
+    leftRootTop, leftWingTip,
+    leftRootBottom, leftWingTip,
+    rightRootTop, rightWingTip,
+    rightRootBottom, rightWingTip,
+    neckBase, neckMid, headBase, headTip,
+    tailBase, tailMid, tailTip
+  ];
+  const creaseGeometry = new THREE.BufferGeometry().setFromPoints(creasePoints);
+  const creases = new THREE.LineSegments(creaseGeometry, creaseMat);
+  crane.add(creases);
+
+  // Center the crane visually
+  crane.position.y = -0.05;
 
   return crane;
 }
@@ -1234,31 +1765,38 @@ function createPaperCanvas(): HTMLCanvasElement {
     return canvasElement;
   }
 
-  context.fillStyle = "#faf8f4";
+  context.fillStyle = "#f3eadb";
   context.fillRect(0, 0, 1024, 1024);
 
-  for (let index = 0; index < 1800; index += 1) {
+  const warmWash = context.createRadialGradient(260, 170, 80, 520, 520, 780);
+  warmWash.addColorStop(0, "rgba(255,255,250,0.52)");
+  warmWash.addColorStop(0.52, "rgba(238,224,203,0.22)");
+  warmWash.addColorStop(1, "rgba(190,164,130,0.1)");
+  context.fillStyle = warmWash;
+  context.fillRect(0, 0, 1024, 1024);
+
+  for (let index = 0; index < 3400; index += 1) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
-    const width = 4 + Math.random() * 18;
-    const height = 0.4 + Math.random() * 1.1;
-    const alpha = 0.012 + Math.random() * 0.035;
+    const width = 6 + Math.random() * 34;
+    const height = 0.35 + Math.random() * 1.2;
+    const alpha = 0.018 + Math.random() * 0.052;
     context.save();
     context.translate(x, y);
-    context.rotate((Math.random() - 0.5) * 0.9);
-    context.fillStyle = `rgba(120, 105, 88, ${alpha})`;
+    context.rotate((Math.random() - 0.5) * 0.75);
+    context.fillStyle = `rgba(118, 96, 66, ${alpha})`;
     context.fillRect(-width / 2, -height / 2, width, height);
     context.restore();
   }
 
-  for (let index = 0; index < 160; index += 1) {
+  for (let index = 0; index < 260; index += 1) {
     const startX = Math.random() * 1024;
     const startY = Math.random() * 1024;
-    const length = 24 + Math.random() * 80;
-    const bend = (Math.random() - 0.5) * 22;
-    const alpha = 0.01 + Math.random() * 0.022;
-    context.strokeStyle = `rgba(100, 88, 74, ${alpha})`;
-    context.lineWidth = 0.6 + Math.random() * 1.1;
+    const length = 40 + Math.random() * 130;
+    const bend = (Math.random() - 0.5) * 38;
+    const alpha = 0.018 + Math.random() * 0.034;
+    context.strokeStyle = `rgba(92, 75, 52, ${alpha})`;
+    context.lineWidth = 0.45 + Math.random() * 1.25;
     context.beginPath();
     context.moveTo(startX, startY);
     context.quadraticCurveTo(
@@ -1270,11 +1808,33 @@ function createPaperCanvas(): HTMLCanvasElement {
     context.stroke();
   }
 
-  for (let index = 0; index < 800; index += 1) {
+  for (let index = 0; index < 90; index += 1) {
+    const startX = Math.random() * 1024;
+    const startY = Math.random() * 1024;
+    const length = 80 + Math.random() * 260;
+    const alpha = 0.014 + Math.random() * 0.028;
+    context.save();
+    context.translate(startX, startY);
+    context.rotate((Math.random() - 0.5) * Math.PI);
+    const wrinkle = context.createLinearGradient(-length / 2, 0, length / 2, 0);
+    wrinkle.addColorStop(0, "rgba(255,255,255,0)");
+    wrinkle.addColorStop(0.42, `rgba(255,255,255,${alpha})`);
+    wrinkle.addColorStop(0.52, `rgba(92,75,52,${alpha * 0.75})`);
+    wrinkle.addColorStop(1, "rgba(255,255,255,0)");
+    context.strokeStyle = wrinkle;
+    context.lineWidth = 1 + Math.random() * 2.2;
+    context.beginPath();
+    context.moveTo(-length / 2, 0);
+    context.quadraticCurveTo(0, (Math.random() - 0.5) * 16, length / 2, (Math.random() - 0.5) * 10);
+    context.stroke();
+    context.restore();
+  }
+
+  for (let index = 0; index < 1100; index += 1) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
-    const radius = 0.6 + Math.random() * 2;
-    const alpha = 0.015 + Math.random() * 0.03;
+    const radius = 0.5 + Math.random() * 2.4;
+    const alpha = 0.018 + Math.random() * 0.034;
     context.fillStyle = `rgba(255, 255, 255, ${alpha})`;
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
@@ -1297,20 +1857,20 @@ function createPaperBumpCanvas(): HTMLCanvasElement {
   context.fillStyle = "rgb(128,128,128)";
   context.fillRect(0, 0, 1024, 1024);
 
-  for (let index = 0; index < 2800; index += 1) {
+  for (let index = 0; index < 4200; index += 1) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
-    const alpha = 0.008 + Math.random() * 0.024;
-    const shade = 118 + Math.floor(Math.random() * 36);
+    const alpha = 0.012 + Math.random() * 0.036;
+    const shade = 108 + Math.floor(Math.random() * 54);
     context.fillStyle = `rgba(${shade},${shade},${shade},${alpha})`;
     context.fillRect(x, y, 1.5 + Math.random() * 2.5, 1.5 + Math.random() * 2.5);
   }
 
-  for (let index = 0; index < 80; index += 1) {
+  for (let index = 0; index < 160; index += 1) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
-    const width = 30 + Math.random() * 100;
-    const alpha = 0.012 + Math.random() * 0.024;
+    const width = 50 + Math.random() * 180;
+    const alpha = 0.016 + Math.random() * 0.036;
     context.save();
     context.translate(x, y);
     context.rotate((Math.random() - 0.5) * 1.2);
